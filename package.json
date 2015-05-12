@@ -1,0 +1,21 @@
+{
+  "name": "allex_lanmanagerservice",
+  "version": "0.1.0",
+  "description": "LanManagerService",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.hers.rs:allex_services/lanmanager.git"
+  },
+  "keywords": [
+    "ecosystem:allex",
+    "Service",
+    "LanManager"
+  ],
+  "author": "HERS Belgrade",
+  "license": "ISC"
+}
+
