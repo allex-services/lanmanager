@@ -1,52 +1,51 @@
-function createTester(execlib){
+function createConsumer(execlib){
   var lib = execlib.lib,
       execSuite = execlib.execSuite,
-      ADS = execSuite.ADS;
-
-  function NeedsTerminal(sink){
-  }
-  NeedsTerminal.prototype.takeSink = function(sink){
-    console.log('needs user sink',sink.clientuser.client.identity.session);
-    sink.consumeChannel('s',function(){
-      console.log('needs state',arguments);
-    });
-    sink.consumeChannel('d',this.onData.bind(this));
-    lib.runNext(lib.dummyFunc,15000);
-  };
-  NeedsTerminal.prototype.onData = function(item){
-    console.log('need',item);
-  };
+      ADS = execSuite.ADS,
+      dataSuite = execlib.dataSuite,
+      MemoryStorage = dataSuite.MemoryStorage,
+      DataManager = dataSuite.DataManager;
 
 
-  function NeedsWaiter(sink){
+  function NeedsWaiter(consumer,sink){
+    this.consumer = consumer;
     this.sink = sink;
-    this.waiter = ADS.listenToScalar(['haveneeds'],{activator:this.goToNeeds.bind(this)});
+    this.waiter = ADS.listenToScalar(['haveneeds'],{rawsetter:this.goToNeeds.bind(this)});
     sink.consumeChannel('s',this.waiter);
   }
   NeedsWaiter.prototype.destroy = function(){
     this.waiter.destroy();
     //this.sink.destroy();
+    this.sink = null;
+    this.consumer = null;
   };
-  NeedsWaiter.prototype.goToNeeds = function(){
-    console.log('Needs!');
+  NeedsWaiter.prototype.goToNeeds = function(haveneeds){
+    console.log('Needs!',haveneeds);
     this.sink.subConnect('needs',{name:'*'},{
     }).done(
       this.onNeedsSink.bind(this)
     );
   };
   NeedsWaiter.prototype.onNeedsSink = function(nsink){
-    var nt = new NeedsTerminal;
-    nt.takeSink(nsink);
+    if(!nsink){
+      return;
+    }
+    if(!this.consumer.needs){
+      this.consumer.needs = new DataManager(new MemoryStorage({record:nsink.recordDescriptor}));
+    }
+    nsink.consumeChannel('s',lib.dummyFunc);
+    nsink.consumeChannel('d',this.consumer.needs);
     this.destroy();
   };
 
-  function Tester(){
+  function Consumer(){
+    this.needs = null;//
   }
-  Tester.prototype.takeSink = function(sink){
+  Consumer.prototype.takeSink = function(sink){
     console.log('lm user sink',sink.clientuser.client.identity.session);
-    new NeedsWaiter(sink);
+    new NeedsWaiter(this,sink);
   };
-  return Tester;
+  return Consumer;
 }
 
-module.exports = createTester;
+module.exports = createConsumer;
