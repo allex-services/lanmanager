@@ -4,7 +4,7 @@ function createConsumer(execlib){
       ADS = execSuite.ADS,
       dataSuite = execlib.dataSuite,
       MemoryStorage = dataSuite.MemoryStorage,
-      DataManager = dataSuite.DataManager;
+      DataDecoder = dataSuite.DataDecoder;
 
 
   function NeedsWaiter(consumer,sink){
@@ -30,20 +30,44 @@ function createConsumer(execlib){
     if(!nsink){
       return;
     }
-    if(!this.consumer.needs){
-      this.consumer.needs = new DataManager(new MemoryStorage({record:nsink.recordDescriptor}));
-    }
-    nsink.consumeChannel('s',lib.dummyFunc);
-    nsink.consumeChannel('d',this.consumer.needs);
+    this.consumer.takeNeedsSink(nsink);
     this.destroy();
   };
 
   function Consumer(){
-    this.needs = null;//
+    this.ready = new lib.HookCollection();
+    this.needs = null;
+    this.decoder = null;
   }
+  Consumer.prototype.destroy = function(){
+    if(!this.ready){
+      return;
+    }
+    if(this.decoder){
+      this.decoder.destroy();
+      this.decoder = null;
+    }
+    this.decoder = null;
+    if(this.needs){
+      this.needs.destroy();
+      this.needs = null;
+    }
+    this.needs = null;
+    this.ready.destruct();
+    this.ready = null;
+  };
   Consumer.prototype.takeSink = function(sink){
     console.log('lm user sink',sink.clientuser.client.identity.session);
     new NeedsWaiter(this,sink);
+  };
+  Consumer.prototype.takeNeedsSink = function(sink){
+    if(!this.needs){
+      this.needs = new MemoryStorage({events:true,record:sink.recordDescriptor});
+      this.needs.events.initiated.attach(this.ready.fire.bind(this.ready,this));
+      this.decoder = new DataDecoder(this.needs);
+    }
+    sink.consumeChannel('s',lib.dummyFunc);
+    sink.consumeChannel('d',this.decoder);
   };
   return Consumer;
 }
