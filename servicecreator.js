@@ -5,7 +5,7 @@ function createLMService(execlib,ParentServicePack){
       
   var ParentService = ParentServicePack.Service;
 
-  registry.register('allex_needingservice');
+  registry.register('allex_remoteserviceneedingservice');
   registry.register('allex_serviceneedservice');
 
   function factoryCreator(parentFactory){
@@ -15,15 +15,12 @@ function createLMService(execlib,ParentServicePack){
     };
   }
 
-  function onNeedsSink(lms,needs,sink){
-    lms.state.set('haveneeds',true);
-    lms.server.add('needs',sink);
+  function onNeedsSink(needs,sink){
     console.log('needs',sink.modulename,sink.role,'for',needs);
     if(lib.isArray(needs)){
       needs.forEach(function(need){
-        console.log('spawn',need,'?');
         sink.call('spawn',need).done(function(){
-          console.log('spawn ok',arguments);
+          console.log('new Service need',arguments);
         },function(){
           console.error('spawn nok',arguments);
         });
@@ -33,22 +30,23 @@ function createLMService(execlib,ParentServicePack){
   function LMService(prophash){
     console.log('new LMService',prophash);
     ParentService.call(this,prophash);
-    execSuite.start({
-      service: {
-        modulename: 'allex_needingservice',
-        instancename: 'lmneeds',
-        propertyhash: {
-          modulename: 'allex_serviceneedservice'
-        }
-      }
+    this.startSubServiceStatically('allex_remoteserviceneedingservice','needs',{
+      modulename: 'allex_serviceneedservice'
     }).done(
-      onNeedsSink.bind(null,this,prophash.needs)
+      onNeedsSink.bind(null,prophash.needs)
     );
   }
   ParentService.inherit(LMService,factoryCreator);
   LMService.prototype.__cleanUp = function(){
     console.log('LMService dead');
     ParentService.prototype.__cleanUp.call(this);
+  };
+  LMService.prototype.introduceUser = function(userhash){
+    console.log('introduceUser',userhash);
+    if(userhash.role!=='service'&&userhash.ip){
+      userhash.name = userhash.ip;
+    }
+    return ParentService.prototype.introduceUser.call(this,userhash);
   };
   
   return LMService;
