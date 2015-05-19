@@ -1,10 +1,6 @@
 module.exports = {
-  registerPorts: [{
-    title: 'Open ports descriptor',
+  registerNewService:[{
+    title: 'Running Service descriptor',
     type: 'object'
-  }],
-  test: [{
-    title: 'Instance name',
-    type: 'string'
   }]
 };
