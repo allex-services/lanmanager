@@ -42,7 +42,6 @@ function createLMService(execlib,ParentServicePack){
     ParentService.prototype.__cleanUp.call(this);
   };
   LMService.prototype.introduceUser = function(userhash){
-    console.log('introduceUser',userhash);
     if(userhash.role!=='service'&&userhash.ip){
       userhash.name = userhash.ip;
     }

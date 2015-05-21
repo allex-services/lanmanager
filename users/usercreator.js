@@ -11,7 +11,7 @@ function createUser(execlib,ParentUser){
   function User(prophash){
     ParentUser.call(this,prophash);
   }
-  ParentUser.inherit(User,require('../methoddescriptors/user'));
+  ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds']);
   User.prototype.__cleanUp = function(){
     ParentUser.prototype.__cleanUp.call(this);
   };
@@ -36,7 +36,6 @@ function createUser(execlib,ParentUser){
     console.log(deadinstancename,'is dead');
     defer.resolve('ok');
   };
-  User.stateFilter = ['haveneeds'];
 
   return User;
 }
