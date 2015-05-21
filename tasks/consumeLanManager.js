@@ -65,7 +65,7 @@ function createConsumer(execlib){
       sink: lmsink,
       subinits:[{
         name: 'needs',
-        identity: {role:'user'},
+        identity: {role:'user',filter:'unsatisfied'},
         propertyhash: {}
       }],
       cb:this.takeNeedsSink.bind(this,lmsink),
