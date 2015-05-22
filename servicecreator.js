@@ -1,5 +1,8 @@
 function createLMService(execlib,ParentServicePack){
-  var lib = execlib.lib,
+  var ParentService = ParentServicePack.Service,
+      dataSuite = execlib.dataSuite,
+      MemoryStorage = dataSuite.MemoryStorage,
+      lib = execlib.lib,
       execSuite = execlib.execSuite,
       registry = execSuite.registry;
       
@@ -36,16 +39,12 @@ function createLMService(execlib,ParentServicePack){
       onNeedsSink.bind(null,prophash.needs)
     );
   }
-  ParentService.inherit(LMService,factoryCreator);
+  ParentService.inherit(LMService,factoryCreator,require('./storagedescriptor'));
   LMService.prototype.__cleanUp = function(){
-    console.log('LMService dead');
     ParentService.prototype.__cleanUp.call(this);
   };
-  LMService.prototype.introduceUser = function(userhash){
-    if(userhash.role!=='service'&&userhash.ip){
-      userhash.name = userhash.ip;
-    }
-    return ParentService.prototype.introduceUser.call(this,userhash);
+  LMService.prototype.createStorage = function(storagedescriptor){
+    return new MemoryStorage(storagedescriptor);
   };
   
   return LMService;

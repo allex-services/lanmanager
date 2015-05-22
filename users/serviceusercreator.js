@@ -7,7 +7,7 @@ function createServiceUser(execlib,ParentUser){
   function ServiceUser(prophash){
     ParentUser.call(this,prophash);
   }
-  ParentUser.inherit(ServiceUser,require('../methoddescriptors/serviceuser'));
+  ParentUser.inherit(ServiceUser,require('../methoddescriptors/serviceuser'),[],require('../visiblefields/serviceuser'));
   ServiceUser.prototype.__cleanUp = function(){
     ParentUser.prototype.__cleanUp.call(this);
   };

@@ -10,8 +10,9 @@ function createUser(execlib,ParentUser){
 
   function User(prophash){
     ParentUser.call(this,prophash);
+    this.set('ip',prophash.ip);
   }
-  ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds']);
+  ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds'],require('../visiblefields/user'));
   User.prototype.__cleanUp = function(){
     ParentUser.prototype.__cleanUp.call(this);
   };
