@@ -23,6 +23,7 @@ function createConsumer(execlib){
     this.connectionstring = prophash.connectionstring;
     this.services = [];
     this.needs = [];
+    this.spawnbids = new lib.Map;
     this.spawningsink.extendTo(this);
     taskRegistry.run('materializeData',{
       sink: this.spawningsink,
@@ -35,6 +36,8 @@ function createConsumer(execlib){
     if(!this.ready){
       return;
     }
+    this.spawnbids.destroy(); //could reject all remaining defers
+    this.spawnbids = null;
     this.needs = null;
     this.services = null;
     this.connectionstring = null;
@@ -49,8 +52,16 @@ function createConsumer(execlib){
     this.lmTask.go();
   };
   Consumer.prototype.onNewService = function(servicerecord){
+    /*
     if(this.lmsink){
       this.lmsink.call('registerNewService',servicerecord);
+    }
+    */
+    var spawnbiddefer = this.spawnbids.remove(servicerecord.instancename);
+    if(spawnbiddefer){
+      //spawnbiddefer.resolve(servicerecord);
+      servicerecord.ipaddress = this.myip;
+      spawnbiddefer.resolve(servicerecord);
     }
   };
   Consumer.prototype.startConsumingLM = function(lmsink){
@@ -74,11 +85,12 @@ function createConsumer(execlib){
     taskRegistry.run('readState',{
       sink: lmsink,
       stream: state.state,
-      name: 'name',
+      name: 'ip',
       cb: this.onMyIP.bind(this,lmsink,state)
     });
   };
   Consumer.prototype.onMyIP = function(lmsink,state,myip){
+    console.log('my ip',myip);
     this.myip = myip;
   };
   Consumer.prototype.takeNeedsSink = function(lmsink,subname,needssink){
@@ -88,16 +100,28 @@ function createConsumer(execlib){
     taskRegistry.run('materializeData',{
       sink: needssink,
       data: this.needs,
-      onInitiated: this.needsReady.bind(this,lmsink,needssink)
+      onInitiated: this.serveNeeds.bind(this,lmsink,needssink),
+      onDelete: this.serveNeeds.bind(this,lmsink,needssink)
     });
   };
-  Consumer.prototype.needsReady = function(lmsink,needssink){
+  Consumer.prototype.serveNeeds = function(lmsink,needssink){
+    /*
     this.needs.forEach(this.serveNeed.bind(this,lmsink,needssink));
+    */
+    console.log('serveNeeds?');
+    if(this.needs.length){
+      console.log('got needs',this.needs);
+      this.serveNeed(lmsink,needssink,this.needs[0]);
+    }else{
+      console.log('No more needs');
+    }
   };
   Consumer.prototype.serveNeed = function(lmsink,needssink,need){
     if(!(lmsink.destroyed && needssink.destroyed)){
+      console.log('no go',lmsink.destroyed,needssink.destroyed);
       return;
     }
+    console.log('serving need',need);
     try{
       registry.register(need.modulename);
       needssink.subConnect(need.instancename,{name:this.myip},{}).done(
@@ -117,18 +141,19 @@ function createConsumer(execlib){
       sink:needsink,
       bidobject:{},
       challengeProducer:this.doSpawn.bind(this,need),
-      cb:function(acceptance){
+      cb:/*this.serveNeeds.bind(this,lmsink,needssink)*//*function(acceptance){
         console.log('accepted',acceptance,'should I go over again?');
-      }
+      }*/lib.dummyFunc
     });
   };
   Consumer.prototype.doSpawn = function(need,challenge,defer){
     console.log('doSpawn',need,challenge);
+    this.spawnbids.add(need.instancename,defer);
     this.spawningsink.call('spawn',{
       modulename:need.modulename,
       instancename:need.instancename
     }).done(
-      defer.resolve.bind(defer),
+      null,
       function(){
         console.error('spawn nok',arguments);
         defer.resolve.bind(null);
