@@ -55,13 +55,13 @@ function createLMService(execlib,ParentServicePack){
       });
     }
   };
-  LMService.prototype.onNeedDown = function(needrecord){
-    console.log('need down',needrecord);
-    this.data.create(needrecord);
+  LMService.prototype.onNeedDown = function(needhash){
+    console.log('need down',needhash);
+    this.data.create(needhash);
   };
-  LMService.prototype.onServiceDown = function(servicerecord){
-    console.log('service down',servicerecord);
-    var need = servicerecord.clone();
+  LMService.prototype.onServiceDown = function(servicehash){
+    console.log('service down',servicehash);
+    var need = servicehash;
     need.ipaddress = null;
     need.tcpport = null;
     need.httpport = null;
