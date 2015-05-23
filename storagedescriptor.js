@@ -1,4 +1,5 @@
 module.exports = {
+  events: true, //will listen to myself
   record:{
     primaryKey: 'instancename',
     fields:[{
