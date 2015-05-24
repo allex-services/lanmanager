@@ -44,7 +44,7 @@ function createUser(execlib,ParentUser){
   User.prototype.onNeedServiceNotified = function(defer,runningservicedescriptor,result){
     defer.resolve(result);
   };
-  User.prototype.registerDeadService = function(deadinstancename,defer){
+  User.prototype.notifyServiceDown = function(deadinstancename,defer){
     console.log(deadinstancename,'is dead');
     defer.resolve('ok');
   };
