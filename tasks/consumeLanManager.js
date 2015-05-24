@@ -94,6 +94,7 @@ function createConsumer(execlib){
     this.myip = myip;
   };
   Consumer.prototype.takeNeedsSink = function(lmsink,subname,needssink){
+    console.log('subSink',subname);
     if(subname!=='needs'){
       return;
     }
