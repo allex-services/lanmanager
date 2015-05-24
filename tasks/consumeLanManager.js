@@ -85,7 +85,7 @@ function createConsumer(execlib){
     taskRegistry.run('readState',{
       sink: lmsink,
       stream: state.state,
-      name: 'ip',
+      name: 'name',
       cb: this.onMyIP.bind(this,lmsink,state)
     });
   };
@@ -101,6 +101,7 @@ function createConsumer(execlib){
       sink: needssink,
       data: this.needs,
       onInitiated: this.serveNeeds.bind(this,lmsink,needssink),
+      onNewRecord: this.serveNeeds.bind(this,lmsink,needssink),
       onDelete: this.serveNeeds.bind(this,lmsink,needssink)
     });
   };
@@ -109,6 +110,10 @@ function createConsumer(execlib){
     this.needs.forEach(this.serveNeed.bind(this,lmsink,needssink));
     */
     console.log('serveNeeds?');
+    if(!this.myip){
+      console.log('NO, I have no ip');
+      return;
+    }
     if(this.needs.length){
       console.log('got needs',this.needs);
       this.serveNeed(lmsink,needssink,this.needs[0]);
