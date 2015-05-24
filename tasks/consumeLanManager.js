@@ -25,6 +25,7 @@ function createConsumer(execlib){
     this.needs = [];
     this.spawnbids = new lib.Map;
     this.spawningsink.extendTo(this);
+    this.spawningsink.consumeChannel('s',ADS.listenToScalar(['down',null],{activator:this.onServiceDown.bind(this)}));
     taskRegistry.run('materializeData',{
       sink: this.spawningsink,
       data: this.services,
@@ -63,6 +64,14 @@ function createConsumer(execlib){
       servicerecord.ipaddress = this.myip;
       spawnbiddefer.resolve(servicerecord);
     }
+  };
+  Consumer.prototype.onServiceDown = function(serviceitempath){
+    console.log(serviceitempath,'is down');
+    this.lmsink.call('notifyServiceDown',serviceitempath[1]).done(function(){
+      console.log('notifyServiceDown ok',arguments);
+    },function(){
+      console.error('notifyServiceDown nok',arguments);
+    });
   };
   Consumer.prototype.startConsumingLM = function(lmsink){
     this.lmsink = lmsink;
