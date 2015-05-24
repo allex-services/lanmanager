@@ -25,6 +25,7 @@ function createConsumer(execlib){
     this.needs = [];
     this.spawnbids = new lib.Map;
     this.spawningsink.extendTo(this);
+    this.spawningsink.consumeChannel('s',ADS.listenToScalar(['down',null],{activator:this.onServiceDown.bind(this)}));
     taskRegistry.run('materializeData',{
       sink: this.spawningsink,
       data: this.services,
@@ -62,6 +63,19 @@ function createConsumer(execlib){
       //spawnbiddefer.resolve(servicerecord);
       servicerecord.ipaddress = this.myip;
       spawnbiddefer.resolve(servicerecord);
+    }
+  };
+  Consumer.prototype.onServiceDown = function(serviceitempath){
+    var deadservicename = serviceitempath[1];
+    this.lmsink.call('notifyServiceDown',deadservicename).done(
+      this.onServiceDownReported.bind(this,deadservicename),
+      function(){
+        console.error('notifyServiceDown nok',arguments);
+    });
+  };
+  Consumer.prototype.onServiceDownReported = function(deadservicename,deletedcount){
+    if(deletedcount>0){
+      this.spawningsink.call('confirmServiceDown',deadservicename);
     }
   };
   Consumer.prototype.startConsumingLM = function(lmsink){
