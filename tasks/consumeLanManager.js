@@ -15,7 +15,6 @@ function createConsumer(execlib){
       propertyhash: {},
       identity: {ip:{name:'needsmonitor'}},
       onSink: this.startConsumingLM.bind(this)
-      //onSink: this.takeLMSink.bind(this)
     });
     this.lmsink = null;
     this.myip = null;
@@ -53,14 +52,8 @@ function createConsumer(execlib){
     this.lmTask.go();
   };
   Consumer.prototype.onNewService = function(servicerecord){
-    /*
-    if(this.lmsink){
-      this.lmsink.call('registerNewService',servicerecord);
-    }
-    */
     var spawnbiddefer = this.spawnbids.remove(servicerecord.instancename);
     if(spawnbiddefer){
-      //spawnbiddefer.resolve(servicerecord);
       servicerecord.ipaddress = this.myip;
       spawnbiddefer.resolve(servicerecord);
     }
@@ -81,6 +74,8 @@ function createConsumer(execlib){
   Consumer.prototype.startConsumingLM = function(lmsink){
     this.lmsink = lmsink;
     if(!lmsink){
+      this.spawnbids.purge();
+      this.myip = null;
       return;
     }
     var state = taskRegistry.run('materializeState',{
@@ -104,7 +99,6 @@ function createConsumer(execlib){
     });
   };
   Consumer.prototype.onMyIP = function(lmsink,state,myip){
-    console.log('my ip',myip);
     this.myip = myip;
   };
   Consumer.prototype.takeNeedsSink = function(lmsink,subname,needssink){
@@ -120,18 +114,30 @@ function createConsumer(execlib){
       onDelete: this.serveNeeds.bind(this,lmsink,needssink)
     });
   };
+  Consumer.prototype.isNeedBiddable = function(needobj,need){
+    var ret = !!this.spawnbids.get(need.instancename);
+    if(ret){
+      console.trace();
+      console.error('How come I check on',need.instancename,'again?!');
+    }else{
+      needobj.need = need;
+    }
+    return ret;
+  };
   Consumer.prototype.serveNeeds = function(lmsink,needssink){
-    /*
-    this.needs.forEach(this.serveNeed.bind(this,lmsink,needssink));
-    */
     console.log('serveNeeds?');
     if(!this.myip){
       console.log('NO, I have no ip');
       return;
     }
     if(this.needs.length){
-      console.log('got needs',this.needs);
-      this.serveNeed(lmsink,needssink,this.needs[0]);
+      var needobj = {need:null};
+      this.needs.some(this.isNeedBiddable.bind(this,needobj));
+      if(!needobj.need){
+        console.log('No more needs to bid on');
+        return;
+      }
+      this.serveNeed(lmsink,needssink,needobj.need);
     }else{
       console.log('No more needs');
     }
@@ -161,12 +167,21 @@ function createConsumer(execlib){
       sink:needsink,
       bidobject:{},
       challengeProducer:this.doSpawn.bind(this,need),
-      cb:/*this.serveNeeds.bind(this,lmsink,needssink)*//*function(acceptance){
-        console.log('accepted',acceptance,'should I go over again?');
-      }*/lib.dummyFunc
+      cb:lib.dummyFunc //there's nothing to do on successful challenge response
     });
   };
   Consumer.prototype.doSpawn = function(need,challenge,defer){
+    var servobj={service:null};
+    if(this.services.some(function(serv){
+      if(serv.instancename===need.instancename){
+        servobj.service = serv;
+        return true;
+      }
+    })){
+      servobj.service.ipaddress = this.myip;
+      defer.resolve(servobj.service);
+      return;
+    }
     console.log('doSpawn',need,challenge);
     this.spawnbids.add(need.instancename,defer);
     this.spawningsink.call('spawn',{
