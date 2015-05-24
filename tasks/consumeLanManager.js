@@ -85,7 +85,7 @@ function createConsumer(execlib){
     taskRegistry.run('readState',{
       sink: lmsink,
       stream: state.state,
-      name: 'ip',
+      name: 'name',
       cb: this.onMyIP.bind(this,lmsink,state)
     });
   };
@@ -94,6 +94,7 @@ function createConsumer(execlib){
     this.myip = myip;
   };
   Consumer.prototype.takeNeedsSink = function(lmsink,subname,needssink){
+    console.log('subSink',subname);
     if(subname!=='needs'){
       return;
     }
@@ -101,6 +102,7 @@ function createConsumer(execlib){
       sink: needssink,
       data: this.needs,
       onInitiated: this.serveNeeds.bind(this,lmsink,needssink),
+      onNewRecord: this.serveNeeds.bind(this,lmsink,needssink),
       onDelete: this.serveNeeds.bind(this,lmsink,needssink)
     });
   };
