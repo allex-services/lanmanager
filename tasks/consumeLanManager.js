@@ -66,12 +66,17 @@ function createConsumer(execlib){
     }
   };
   Consumer.prototype.onServiceDown = function(serviceitempath){
-    console.log(serviceitempath,'is down');
-    this.lmsink.call('notifyServiceDown',serviceitempath[1]).done(function(){
-      console.log('notifyServiceDown ok',arguments);
-    },function(){
-      console.error('notifyServiceDown nok',arguments);
+    var deadservicename = serviceitempath[1];
+    this.lmsink.call('notifyServiceDown',deadservicename).done(
+      this.onServiceDownReported.bind(this,deadservicename),
+      function(){
+        console.error('notifyServiceDown nok',arguments);
     });
+  };
+  Consumer.prototype.onServiceDownReported = function(deadservicename,deletedcount){
+    if(deletedcount>0){
+      this.spawningsink.call('confirmServiceDown',deadservicename);
+    }
   };
   Consumer.prototype.startConsumingLM = function(lmsink){
     this.lmsink = lmsink;
