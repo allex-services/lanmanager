@@ -2,9 +2,7 @@ function createUser(execlib,ParentUser){
   var lib = execlib.lib,
       q = lib.q,
       execSuite = execlib.execSuite,
-      taskRegistry = execSuite.taskRegistry,
-      dataSuite = execlib.dataSuite,
-      filterFactory = dataSuite.filterFactory;
+      taskRegistry = execSuite.taskRegistry;
 
   if(!ParentUser){
     ParentUser = execlib.execSuite.ServicePack.Service.prototype.userFactory.get('user');
@@ -13,15 +11,20 @@ function createUser(execlib,ParentUser){
   function User(prophash){
     ParentUser.call(this,prophash);
     this.ip = prophash.ip;
-    this.set('ip',prophash.ip);
+    console.log('new User',this.ip);
   }
-  ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds'],require('../visiblefields/user'));
+  ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds','haveservices']);
   User.prototype.__cleanUp = function(){
-    this.__service.data.delete(filterFactory.createFromDescriptor({
+    console.log('User',this.ip,'down, deleting the record');
+    this.__service.subservices.get('services').call('delete',{
       op: 'eq',
       field: 'ipaddress',
       value: this.ip
-    }));
+    }).done(function(){
+      console.log('delete services done',arguments);
+    },function(){
+      console.error('delete services error',arguments);
+    });
     ParentUser.prototype.__cleanUp.call(this);
   };
   User.prototype.registerNewService = function(runningservicedescriptor,defer){

@@ -1,7 +1,5 @@
 function createLMService(execlib,ParentServicePack){
   var ParentService = ParentServicePack.Service,
-      dataSuite = execlib.dataSuite,
-      MemoryStorage = dataSuite.MemoryStorage,
       lib = execlib.lib,
       execSuite = execlib.execSuite,
       registry = execSuite.registry,
@@ -23,20 +21,26 @@ function createLMService(execlib,ParentServicePack){
     console.log('new LMService',prophash);
     ParentService.call(this,prophash);
     this.needsTable = [];
-    this.data.storage.events.recordDeleted.attach(this.onServiceDown.bind(this));
+    this.servicesTable = [];
     this.startSubServiceStatically('allex_remoteserviceneedingservice','needs',{
       modulename: 'allex_serviceneedservice'
     }).done(
       this.onNeedsSink.bind(this,prophash.needs)
     );
+    this.startSubServiceStatically('allex_availablelanservicesservice','services',{}).done(
+      this.onServicesSink.bind(this)
+    );
   }
-  ParentService.inherit(LMService,factoryCreator,require('./storagedescriptor'));
+  ParentService.inherit(LMService,factoryCreator);
   LMService.prototype.__cleanUp = function(){
     this.needsTable = [];
     ParentService.prototype.__cleanUp.call(this);
   };
-  LMService.prototype.createStorage = function(storagedescriptor){
-    return new MemoryStorage(storagedescriptor);
+  LMService.prototype.introduceUser = function(userhash){
+    if(userhash.role === 'user'){
+      userhash.name = userhash.ip;
+    }
+    return ParentService.prototype.introduceUser.call(this,userhash);
   };
   LMService.prototype.onNeedsSink = function(needs,sink){
     taskRegistry.run('materializeData',{
@@ -55,9 +59,18 @@ function createLMService(execlib,ParentServicePack){
       });
     }
   };
+  LMService.prototype.onServicesSink = function(sink){
+    console.log('services sink',sink);
+    taskRegistry.run('materializeData',{
+      sink:sink,
+      data:this.servicesTable,
+      onRecordDeletion:this.onServiceDown.bind(this)
+    });
+  };
   LMService.prototype.onNeedDown = function(needhash){
     console.log('need down',needhash);
-    this.data.create(needhash);
+    //this.data.create(needhash);
+    this.subservices.get('services').call('create',needhash);
   };
   LMService.prototype.onServiceDown = function(servicehash){
     console.log('service down',servicehash);
@@ -66,7 +79,12 @@ function createLMService(execlib,ParentServicePack){
     need.tcpport = null;
     need.httpport = null;
     need.wsport = null;
-    this.subservices.get('needs').call('spawn',need);
+    this.subservices.get('needs').call('spawn',need).done(function(){
+      console.log('new Service need',arguments);
+    },function(){
+      console.error('spawn nok',arguments);
+    });
+    console.log('service down handled');
   };
   
   return LMService;
