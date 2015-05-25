@@ -4,7 +4,7 @@ function createBehaviorMap(execlib){
 
   return [{
     name: 'consumeLanManager',
-    constructor: require('./tasks/consumeLanManager.js')(execlib)
+    klass: require('./tasks/consumeLanManager.js')(execlib)
   }];
 }
 
