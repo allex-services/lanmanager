@@ -2,9 +2,7 @@ function createConsumer(execlib){
   var lib = execlib.lib,
       execSuite = execlib.execSuite,
       taskRegistry = execSuite.taskRegistry,
-      Task = execSuite.Task,
-      StateSource = execSuite.StateSource,
-      ADS = execSuite.ADS;
+      Task = execSuite.Task;
 
   function Consumer(prophash){
     Task.call(this,prophash);
@@ -17,21 +15,25 @@ function createConsumer(execlib){
     this.lmsink = null;
     this.myip = null;
     this.spawningsink = prophash.spawningsink;
+    this.spawningsink.consumeChannel('s',lib.dummyFunc);
     this.connectionstring = prophash.connectionstring;
     this.services = [];
     this.spawningsink.extendTo(this);
-    this.spawningsink.consumeChannel('s',ADS.listenToScalar(['down',null],{activator:this.onServiceDown.bind(this)}));
+    this.newServiceEvent = new lib.HookCollection();
     taskRegistry.run('materializeData',{
       sink: this.spawningsink,
       data: this.services,
-      onNewRecord: this.onNewService.bind(this)
+      onNewRecord: this.onNewService.bind(this),
+      onRecordDeletion: this.onServiceDown.bind(this)
     });
   }
   lib.inherit(Consumer,Task);
   Consumer.prototype.destroy = function(){
-    if(!this.ready){
+    if(!this.newServiceEvent){
       return;
     }
+    this.newServiceEvent.destruct();
+    this.newServiceEvent = null;
     this.services = null;
     this.connectionstring = null;
     this.spawningsink = null;
@@ -45,27 +47,20 @@ function createConsumer(execlib){
     this.lmTask.go();
   };
   Consumer.prototype.onNewService = function(servicerecord){
-    var spawnbiddefer = this.spawnbids.remove(servicerecord.instancename);
-    if(spawnbiddefer){
-      servicerecord.ipaddress = this.myip;
-      spawnbiddefer.resolve(servicerecord);
-    }
+    this.log('firing',servicerecord);
+    this.newServiceEvent.fire(servicerecord);
   };
-  Consumer.prototype.onServiceDown = function(serviceitempath){
+  Consumer.prototype.onServiceDown = function(servicerecord/*serviceitempath*/){
     if(!this.lmsink){
       return;
     }
-    var deadservicename = serviceitempath[1];
+    var deadservicename = servicerecord.instancename;
     this.lmsink.call('notifyServiceDown',deadservicename).done(
-      this.onServiceDownReported.bind(this,deadservicename),
+      null,
       function(){
         console.error('notifyServiceDown nok',arguments);
     });
-  };
-  Consumer.prototype.onServiceDownReported = function(deadservicename,deletedcount){
-    if(deletedcount>0){
-      this.spawningsink.call('confirmServiceDown',deadservicename);
-    }
+    this.log('called notifyServiceDown',deadservicename);
   };
   Consumer.prototype.startConsumingLM = function(lmsink){
     this.lmsink = lmsink;
@@ -99,7 +94,7 @@ function createConsumer(execlib){
     }
   };
   Consumer.prototype.takeNeedsSink = function(subname,needssink){
-    console.log('subSink',subname);
+    this.log('subSink',subname);
     if(subname!=='needs'){
       return;
     }
@@ -107,11 +102,12 @@ function createConsumer(execlib){
       sink:needssink,
       myIP:this.myip,
       servicesTable:this.services,
+      newServiceEvent:this.newServiceEvent,
       spawner:this.doSpawn.bind(this)
     });
   };
   Consumer.prototype.doSpawn = function(need,challenge,defer){
-    //console.log('doSpawn',need,challenge);
+    this.log('doSpawn',need,challenge);
     this.spawningsink.call('spawn',{
       modulename:need.modulename,
       instancename:need.instancename
