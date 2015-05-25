@@ -1,10 +1,8 @@
 function createConsumer(execlib){
   var lib = execlib.lib,
       execSuite = execlib.execSuite,
-      registry = execSuite.registry,
       taskRegistry = execSuite.taskRegistry,
       Task = execSuite.Task,
-      SubServiceExtractor = execSuite.StateSubServiceExtractor,
       StateSource = execSuite.StateSource,
       ADS = execSuite.ADS;
 
@@ -21,7 +19,6 @@ function createConsumer(execlib){
     this.spawningsink = prophash.spawningsink;
     this.connectionstring = prophash.connectionstring;
     this.services = [];
-    this.spawnbids = new lib.Map;
     this.spawningsink.extendTo(this);
     this.spawningsink.consumeChannel('s',ADS.listenToScalar(['down',null],{activator:this.onServiceDown.bind(this)}));
     taskRegistry.run('materializeData',{
@@ -35,8 +32,6 @@ function createConsumer(execlib){
     if(!this.ready){
       return;
     }
-    this.spawnbids.destroy(); //could reject all remaining defers
-    this.spawnbids = null;
     this.services = null;
     this.connectionstring = null;
     this.spawningsink = null;
@@ -57,6 +52,9 @@ function createConsumer(execlib){
     }
   };
   Consumer.prototype.onServiceDown = function(serviceitempath){
+    if(!this.lmsink){
+      return;
+    }
     var deadservicename = serviceitempath[1];
     this.lmsink.call('notifyServiceDown',deadservicename).done(
       this.onServiceDownReported.bind(this,deadservicename),
@@ -72,78 +70,48 @@ function createConsumer(execlib){
   Consumer.prototype.startConsumingLM = function(lmsink){
     this.lmsink = lmsink;
     if(!lmsink){
-      this.spawnbids.purge();
       this.myip = null;
       return;
     }
     var state = taskRegistry.run('materializeState',{
-      sink: lmsink
-    });
-    taskRegistry.run('acquireSubSinks',{
-      sink: lmsink,
-      subinits:[{
-        name: 'needs',
-        identity: {role:'user',filter:'unsatisfied'},
-        propertyhash: {}
-      }],
-      cb:this.takeNeedsSink.bind(this,lmsink),
-      stream: state.state
+      sink: this.lmsink
     });
     taskRegistry.run('readState',{
-      sink: lmsink,
+      sink: this.lmsink,
       stream: state.state,
       name: 'name',
-      cb: this.onMyIP.bind(this,lmsink,state)
+      cb: this.onMyIP.bind(this,state)
     });
   };
-  Consumer.prototype.onMyIP = function(lmsink,state,myip){
+  Consumer.prototype.onMyIP = function(state,myip){
     this.myip = myip;
-  };
-  Consumer.prototype.hasIP = function(){
-    if(!this.myip){
-      console.log('NO, I have no ip');
+    if(this.myip){
+      taskRegistry.run('acquireSubSinks',{
+        sink: this.lmsink,
+        subinits:[{
+          name: 'needs',
+          identity: {role:'user',filter:'unsatisfied'},
+          propertyhash: {}
+        }],
+        cb:this.takeNeedsSink.bind(this),
+        stream: state.state
+      });
     }
-    return !!this.myip;
   };
-  Consumer.prototype.identityForNeed = function(need){
-    return {name:this.myip};
-  };
-  Consumer.prototype.takeNeedsSink = function(lmsink,subname,needssink){
+  Consumer.prototype.takeNeedsSink = function(subname,needssink){
     console.log('subSink',subname);
     if(subname!=='needs'){
       return;
     }
-    taskRegistry.run('consumeNeedingService',{
+    taskRegistry.run('consumeRemoteServiceNeedingService',{
       sink:needssink,
-      shouldServeNeeds:this.hasIP.bind(this),
-      shouldServeNeed:this.isNeedBiddable.bind(this),
-      identityForNeed:this.identityForNeed.bind(this),
-      respondToChallenge:this.doSpawn.bind(this)
+      myIP:this.myip,
+      servicesTable:this.services,
+      spawner:this.doSpawn.bind(this)
     });
   };
-  Consumer.prototype.isNeedBiddable = function(need){
-    var ret = !this.spawnbids.get(need.instancename);
-    if(!ret){
-      console.trace();
-      console.error('How come I check on',need.instancename,'again?!');
-    }
-    return ret;
-  };
   Consumer.prototype.doSpawn = function(need,challenge,defer){
-    console.log('doSpawn',need,challenge,defer);
-    var servobj={service:null};
-    if(this.services.some(function(serv){
-      if(serv.instancename===need.instancename){
-        servobj.service = serv;
-        return true;
-      }
-    })){
-      servobj.service.ipaddress = this.myip;
-      defer.resolve(servobj.service);
-      return;
-    }
-    console.log('doSpawn',need,challenge);
-    this.spawnbids.add(need.instancename,defer);
+    //console.log('doSpawn',need,challenge);
     this.spawningsink.call('spawn',{
       modulename:need.modulename,
       instancename:need.instancename
