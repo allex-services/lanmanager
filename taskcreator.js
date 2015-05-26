@@ -3,8 +3,11 @@ function createBehaviorMap(execlib){
       taskRegistry = execSuite.taskRegistry;
 
   return [{
+    name: 'satisfyLanManager',
+    klass: require('./tasks/satisfylanmanager')(execlib)
+  },{
     name: 'consumeLanManager',
-    klass: require('./tasks/consumeLanManager.js')(execlib)
+    klass: require('./tasks/consumelanmanager')(execlib)
   }];
 }
 
