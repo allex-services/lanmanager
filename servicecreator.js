@@ -18,7 +18,6 @@ function createLMService(execlib,ParentServicePack){
   }
 
   function LMService(prophash){
-    console.log('new LMService',prophash);
     ParentService.call(this,prophash);
     this.needsTable = [];
     this.servicesTable = [];
@@ -60,7 +59,6 @@ function createLMService(execlib,ParentServicePack){
     }
   };
   LMService.prototype.onServicesSink = function(sink){
-    console.log('services sink',sink);
     taskRegistry.run('materializeData',{
       sink:sink,
       data:this.servicesTable,

@@ -13,7 +13,7 @@ function createUser(execlib,ParentUser){
   }
   ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds','haveservices']);
   User.prototype.destroy = function(){
-    console.log('User',this.ip,'down, deleting the record');
+    console.log('User',this.get('name'),'down, deleting the record');
     this.__service.subservices.get('services').call('delete',{
       op: 'eq',
       field: 'ipaddress',
