@@ -49,6 +49,8 @@ function createLMService(execlib,ParentServicePack){
     });
     //console.log('needs',sink.modulename,sink.role,'for',needs);
     if(lib.isArray(needs)){
+      needs.forEach(sink.call.bind(sink,'spawn'));
+      /*
       needs.forEach(function(need){
         sink.call('spawn',need).done(function(){
           console.log('new Service need',arguments);
@@ -56,6 +58,7 @@ function createLMService(execlib,ParentServicePack){
           console.error('spawn nok',arguments);
         });
       });
+      */
     }
   };
   LMService.prototype.onServicesSink = function(sink){
@@ -77,12 +80,12 @@ function createLMService(execlib,ParentServicePack){
     need.tcpport = null;
     need.httpport = null;
     need.wsport = null;
-    this.subservices.get('needs').call('spawn',need).done(function(){
+    this.subservices.get('needs').call('spawn',need);/*.done(function(){
       console.log('new Service need',arguments);
     },function(){
       console.error('spawn nok',arguments);
-    });
-    console.log('service down handled');
+    });*/
+    //console.log('service down handled');
   };
   
   return LMService;
