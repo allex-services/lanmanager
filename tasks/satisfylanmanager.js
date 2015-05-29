@@ -9,6 +9,7 @@ function createSatisfier(execlib){
     this.state = prophash.lanmanagerstate;
     this.myip = null;
     this.monitor = prophash.subservicemonitor;
+    this.onMissingModule = prophash.onMissingModule;
     if(!prophash.subservicemonitor.newServiceEvent){
       var e = new lib.Error('NO_NEWSERVICEEVENT_IN_SUBSERVICEMONITOR');
       e.prophash = prophash;
@@ -26,6 +27,7 @@ function createSatisfier(execlib){
     this.subServicesDestroyedListener = null;
     this.serviceDownListener.destroy();
     this.serviceDownListener = null;
+    this.onMissingModule = null;
     this.monitor = null;
     this.myip = null;
     this.state = null;
@@ -71,6 +73,7 @@ function createSatisfier(execlib){
       myIP:this.myip,
       servicesTable:this.monitor.services,
       newServiceEvent:this.monitor.newServiceEvent,
+      onMissingModule:this.onMissingModule,
       spawner:this.doSpawn.bind(this)
     });
   };
