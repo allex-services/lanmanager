@@ -79,10 +79,7 @@ function createSatisfier(execlib){
   };
   Satisfier.prototype.doSpawn = function(need,challenge,defer){
     this.log('doSpawn',need,challenge);
-    this.monitor.sink.call('spawn',{
-      modulename:need.modulename,
-      instancename:need.instancename
-    }).done(
+    this.monitor.sink.call('spawn',need).done(
       null,
       function(){
         console.error('spawn nok',arguments);
