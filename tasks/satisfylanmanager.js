@@ -81,10 +81,15 @@ function createSatisfier(execlib){
     this.log('doSpawn',need,challenge);
     this.monitor.sink.call('spawn',need).done(
       null,
-      function(){
-        console.error('spawn nok',arguments);
-        defer.resolve.bind(null);
-    });
+      this.onSpawnFailed.bind(this,need,challenge,defer)
+    );
+  };
+  Satisfier.prototype.onSpawnFailed = function(need,challenge,defer,reason){
+    if(reason.code === 'MODULE_NOT_FOUND'){
+      this.onMissingModule(reason,this.doSpawn.bind(this,need,challenge,defer));
+    }else{
+      defer.resolve(null);
+    }
   };
   Satisfier.prototype.compulsoryConstructionProperties = ['lanmanagerstate','subservicemonitor'];
   return Satisfier;
