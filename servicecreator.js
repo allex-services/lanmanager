@@ -19,6 +19,8 @@ function createLMService(execlib,ParentServicePack){
 
   function LMService(prophash){
     ParentService.call(this,prophash);
+    this.ipstrategies = prophash.ipstrategies;
+    console.log('ipstrategies',this.ipstrategies);
     this.needsTable = [];
     this.servicesTable = [];
     this.startSubServiceStatically('allex_remoteserviceneedingservice','needs',{
@@ -47,19 +49,14 @@ function createLMService(execlib,ParentServicePack){
       data:this.needsTable,
       onRecordDeletion:this.onNeedDown.bind(this)
     });
-    //console.log('needs',sink.modulename,sink.role,'for',needs);
     if(lib.isArray(needs)){
-      needs.forEach(sink.call.bind(sink,'spawn'));
-      /*
-      needs.forEach(function(need){
-        sink.call('spawn',need).done(function(){
-          console.log('new Service need',arguments);
-        },function(){
-          console.error('spawn nok',arguments);
-        });
-      });
-      */
+      needs.forEach(this.engageNeed.bind(this,sink));
     }
+  };
+  LMService.prototype.engageNeed = function(needsink,need){
+    need.strategies = need.strategies || {};
+    need.strategies.ip = this.ipstrategies;
+    needsink.call('spawn',need);
   };
   LMService.prototype.onServicesSink = function(sink){
     taskRegistry.run('materializeData',{
