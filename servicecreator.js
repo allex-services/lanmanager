@@ -9,6 +9,7 @@ function createLMService(execlib,ParentServicePack){
 
   registry.register('allex_remoteserviceneedingservice');
   registry.register('allex_serviceneedservice');
+  registry.register('allex_engagedmodulesservice');
 
   function factoryCreator(parentFactory){
     return {
@@ -31,6 +32,7 @@ function createLMService(execlib,ParentServicePack){
     this.startSubServiceStatically('allex_availablelanservicesservice','services',{}).done(
       this.onServicesSink.bind(this)
     );
+    this.startSubServiceStatically('allex_engagedmodulesservice','engaged_modules',{});
   }
   ParentService.inherit(LMService,factoryCreator);
   LMService.prototype.__cleanUp = function(){

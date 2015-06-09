@@ -37,6 +37,20 @@ function createUser(execlib,ParentUser){
       defer.notify.bind(defer)
     );
   };
+  User.prototype.notifyModuleEngaged = function(modulename,defer){
+    if(!this.destroyed){
+      return;
+    }
+    var me = this.__service.subservices.get('engaged_modules');
+    if(!me){
+      lib.runNext(this.notifyModuleEngaged.bind(this,modulename,defer),500);
+      return;
+    }
+    me.call('create',{modulename:modulename}).done(
+      defer.resolve.bind(defer,modulename),
+      defer.reject.bind(defer)
+    );
+  };
 
   return User;
 }
