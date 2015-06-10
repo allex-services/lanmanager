@@ -32,7 +32,9 @@ function createLMService(execlib,ParentServicePack){
     this.startSubServiceStatically('allex_availablelanservicesservice','services',{}).done(
       this.onServicesSink.bind(this)
     );
-    this.startSubServiceStatically('allex_engagedmodulesservice','engaged_modules',{});
+    this.startSubServiceStatically('allex_engagedmodulesservice','engaged_modules',{}).done(
+      this.onEngagedModulesSink.bind(this)
+    );
   }
   ParentService.inherit(LMService,factoryCreator);
   LMService.prototype.__cleanUp = function(){
@@ -60,17 +62,17 @@ function createLMService(execlib,ParentServicePack){
     need.strategies.ip = this.ipstrategies;
     needsink.call('spawn',need);
   };
+  LMService.prototype.onNeedDown = function(needhash){
+    console.log('need down',needhash);
+    //this.data.create(needhash);
+    this.subservices.get('services').call('create',needhash);
+  };
   LMService.prototype.onServicesSink = function(sink){
     taskRegistry.run('materializeData',{
       sink:sink,
       data:this.servicesTable,
       onRecordDeletion:this.onServiceDown.bind(this)
     });
-  };
-  LMService.prototype.onNeedDown = function(needhash){
-    console.log('need down',needhash);
-    //this.data.create(needhash);
-    this.subservices.get('services').call('create',needhash);
   };
   LMService.prototype.onServiceDown = function(servicehash){
     console.log('service down',servicehash);
@@ -79,12 +81,14 @@ function createLMService(execlib,ParentServicePack){
     need.tcpport = null;
     need.httpport = null;
     need.wsport = null;
-    this.subservices.get('needs').call('spawn',need);/*.done(function(){
-      console.log('new Service need',arguments);
-    },function(){
-      console.error('spawn nok',arguments);
-    });*/
-    //console.log('service down handled');
+    this.subservices.get('needs').call('spawn',need);
+  };
+  LMService.prototype.onEngagedModulesSink = function(emsink){
+    ['allexcore','allex_dataservice'].forEach(function(emn){
+      emsink.call('create',{
+        modulename:emn
+      });
+    });
   };
   
   return LMService;
