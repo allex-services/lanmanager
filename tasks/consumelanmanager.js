@@ -23,16 +23,13 @@ function createLMConsumer(execlib){
         subinits:[{
           name: 'services',
           identity: {role:'user'},
-          propertyhash: {}
-        }],
-        cb: this.takeServicesSubSink.bind(this)
+          propertyhash: {},
+          cb: this.takeServicesSubSink.bind(this)
+        }]
       });
     }
   };
-  LanManagerConsumer.prototype.takeServicesSubSink = function(name,sink){
-    if(name!=='services'){ //totally overkill
-      return;
-    }
+  LanManagerConsumer.prototype.takeServicesSubSink = function(sink){
     taskRegistry.run('materializeData',{
       sink:sink,
       data:this.table

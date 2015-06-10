@@ -48,9 +48,9 @@ function createSatisfier(execlib){
         subinits:[{
           name: 'needs',
           identity: {role:'user',filter:'unsatisfied'},
-          propertyhash: {}
-        }],
-        cb:this.takeNeedsSink.bind(this),
+          propertyhash: {},
+          cb:this.takeNeedsSink.bind(this)
+        }]
       });
     }
   };
@@ -63,11 +63,7 @@ function createSatisfier(execlib){
     });
     this.log('called notifyServiceDown',deadservicename);
   };
-  Satisfier.prototype.takeNeedsSink = function(subname,needssink){
-    this.log('subSink',subname);
-    if(subname!=='needs'){
-      return;
-    }
+  Satisfier.prototype.takeNeedsSink = function(needssink){
     taskRegistry.run('consumeRemoteServiceNeedingService',{
       sink:needssink,
       myIP:this.myip,

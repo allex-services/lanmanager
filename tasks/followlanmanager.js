@@ -23,16 +23,13 @@ function createLMFollower(execlib){
         subinits:[{
           name: 'services',
           identity: {role:'user'},
-          propertyhash: {}
-        }],
-        cb: this.takeServicesSubSink.bind(this)
+          propertyhash: {},
+          cb: this.takeServicesSubSink.bind(this)
+        }]
       });
     }
   };
-  LanManagerFollower.prototype.takeServicesSubSink = function(name,sink){
-    if(name!=='services'){ //totally overkill
-      return;
-    }
+  LanManagerFollower.prototype.takeServicesSubSink = function(sink){
     taskRegistry.run('forwardData',{
       sink:sink,
       childsink:this.sink
