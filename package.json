@@ -1,6 +1,6 @@
 {
   "name": "allex_lanmanagerservice",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LanManagerService",
   "main": "index.js",
   "scripts": {
@@ -18,4 +18,3 @@
   "author": "HERS Belgrade",
   "license": "ISC"
 }
-
