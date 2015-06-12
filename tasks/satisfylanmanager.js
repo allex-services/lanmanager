@@ -1,4 +1,5 @@
 function createSatisfier(execlib){
+  'use strict';
   var lib = execlib.lib,
       execSuite = execlib.execSuite,
       taskRegistry = execSuite.taskRegistry,
