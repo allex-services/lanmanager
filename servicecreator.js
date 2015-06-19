@@ -23,6 +23,7 @@ function createLMService(execlib,ParentServicePack){
     ParentService.call(this,prophash);
     this.ipstrategies = prophash.ipstrategies;
     console.log('ipstrategies',this.ipstrategies);
+    this.originalNeeds = new lib.Map();
     this.needsTable = [];
     this.servicesTable = [];
     this.startSubServiceStatically('allex_remoteserviceneedingservice','needs',{
@@ -39,7 +40,13 @@ function createLMService(execlib,ParentServicePack){
   }
   ParentService.inherit(LMService,factoryCreator);
   LMService.prototype.__cleanUp = function(){
-    this.needsTable = [];
+    if(!this.originalNeeds){
+      return;
+    }
+    this.servicesTable = null;
+    this.needsTable = null;
+    this.originalNeeds.destroy();
+    this.originalNeeds = null;
     ParentService.prototype.__cleanUp.call(this);
   };
   LMService.prototype.introduceUser = function(userhash){
@@ -59,6 +66,7 @@ function createLMService(execlib,ParentServicePack){
     }
   };
   LMService.prototype.engageNeed = function(needsink,need){
+    this.originalNeeds.replace(need.instancename,need);
     need.strategies = need.strategies || {};
     need.strategies.ip = this.ipstrategies;
     needsink.call('spawn',need);
@@ -77,11 +85,16 @@ function createLMService(execlib,ParentServicePack){
   };
   LMService.prototype.onServiceDown = function(servicehash){
     console.log('service down',servicehash);
-    var need = servicehash;
+    var need = servicehash,
+        originalneed = this.originalNeeds.get(servicehash.instancename);
     need.ipaddress = null;
     need.tcpport = null;
     need.httpport = null;
     need.wsport = null;
+    lib.traverse(originalneed,function(onv,onn){
+      need[onn] = onv;
+    });
+    console.log('=> new need',need);
     this.subservices.get('needs').call('spawn',need);
   };
   LMService.prototype.onEngagedModulesSink = function(emsink){
