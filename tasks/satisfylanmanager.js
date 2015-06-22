@@ -5,6 +5,18 @@ function createSatisfier(execlib){
       taskRegistry = execSuite.taskRegistry,
       DestroyableTask = execSuite.DestroyableTask;
 
+  function SpawnedMonitor (onMissingModule, spawned) {
+    this.spawnedDestroyedListener = spawned.destroyed.attach(this.destroy.bind(this, onMissingModule, spawned));
+  }
+
+  SpawnedMonitor.prototype.destroy = function (onMissingModule, spawned, exception){
+    if(exception.code==='MODULE_NOT_FOUND'){
+      if(lib.isFunction(onMissingModule)){
+        onMissingModule(exception);
+      }
+    }
+  };
+
   function Satisfier(prophash){
     DestroyableTask.call(this,prophash,'lanmanagerstate');
     this.state = prophash.lanmanagerstate;
@@ -77,11 +89,17 @@ function createSatisfier(execlib){
   Satisfier.prototype.doSpawn = function(need,challenge,defer){
     this.log('doSpawn',need,challenge);
     this.monitor.sink.call('spawn',need).done(
-      null,
+      this.onSpawned.bind(this,need,challenge,defer),
       this.onSpawnFailed.bind(this,need,challenge,defer)
     );
   };
+  Satisfier.prototype.onSpawned = function (need,challenge,defer,sink) {
+    new SpawnedMonitor(this.onSpawnFailed.bind(this,need,challenge,defer), sink);
+  };
   Satisfier.prototype.onSpawnFailed = function(need,challenge,defer,reason){
+    if(!this.destroyed){
+      return;
+    }
     if(reason.code === 'MODULE_NOT_FOUND'){
       this.onMissingModule(reason,this.doSpawn.bind(this,need,challenge,defer));
     }else{
