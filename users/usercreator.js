@@ -47,7 +47,7 @@ function createUser(execlib,ParentUser){
       lib.runNext(this.notifyModuleEngaged.bind(this,modulename,defer),500);
       return;
     }
-    me.call('create',{modulename:modulename}).done(
+    me.call('update',{modulename:modulename},{upsert:true}).done(
       defer.resolve.bind(defer,modulename),
       defer.reject.bind(defer)
     );

@@ -11,6 +11,7 @@ function createLMService(execlib,ParentServicePack){
   registry.register('allex_remoteserviceneedingservice');
   registry.register('allex_serviceneedservice');
   registry.register('allex_engagedmodulesservice');
+  registry.register('allex_natservice');
 
   function factoryCreator(parentFactory){
     return {
@@ -36,6 +37,9 @@ function createLMService(execlib,ParentServicePack){
     );
     this.startSubServiceStatically('allex_engagedmodulesservice','engaged_modules',{}).done(
       this.onEngagedModulesSink.bind(this)
+    );
+    this.startSubServiceStatically('allex_natservice','nat',{}).done(
+      this.onNatSink.bind(this, prophash.nat||[])
     );
   }
   ParentService.inherit(LMService,factoryCreator);
@@ -73,7 +77,6 @@ function createLMService(execlib,ParentServicePack){
   };
   LMService.prototype.onNeedDown = function(needhash){
     console.log('need down',needhash);
-    //this.data.create(needhash);
     this.subservices.get('services').call('create',needhash);
   };
   LMService.prototype.onServicesSink = function(sink){
@@ -81,6 +84,11 @@ function createLMService(execlib,ParentServicePack){
       sink:sink,
       data:this.servicesTable,
       onRecordDeletion:this.onServiceDown.bind(this)
+    });
+  };
+  LMService.prototype.onNatSink = function (natarry, sink) {
+    natarry.forEach(function(nat){
+      sink.call('create',nat);
     });
   };
   LMService.prototype.onServiceDown = function(servicehash){
