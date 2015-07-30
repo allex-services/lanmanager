@@ -6,9 +6,10 @@ function createLMFollower(execlib){
       MultiDestroyableTask = execSuite.MultiDestroyableTask,
       taskRegistry = execSuite.taskRegistry;
   function LanManagerFollower(prophash){
-    MultiDestroyableTask.call(this,prophash,['lanmanagerstate','sink']);
+    MultiDestroyableTask.call(this,prophash,['lanmanagerstate','availablelanservicessink','natsink']);
     this.state = prophash.lanmanagerstate;
-    this.sink = prophash.sink;
+    this.availablelanservicessink = prophash.availablelanservicessink;
+    this.natsink = prophash.natsink;
     this.subsinkfollower = null;
   }
   lib.inherit(LanManagerFollower,MultiDestroyableTask);
@@ -26,6 +27,11 @@ function createLMFollower(execlib){
           identity: {role:'user'},
           propertyhash: {},
           cb: this.takeServicesSubSink.bind(this)
+        },{
+          name: 'nat',
+          identity: {role:'user'},
+          propertyhash: {},
+          cb: this.takeNatSubSink.bind(this)
         }]
       });
     }
@@ -33,10 +39,16 @@ function createLMFollower(execlib){
   LanManagerFollower.prototype.takeServicesSubSink = function(sink){
     taskRegistry.run('forwardData',{
       sink:sink,
-      childsink:this.sink
+      childsink:this.availablelanservicessink
     });
   };
-  LanManagerFollower.prototype.compulsoryConstructionProperties = ['lanmanagerstate','sink'];
+  LanManagerFollower.prototype.takeNatSubSink = function(sink){
+    taskRegistry.run('forwardData',{
+      sink:sink,
+      childsink:this.natsink
+    });
+  };
+  LanManagerFollower.prototype.compulsoryConstructionProperties = ['lanmanagerstate','availablelanservicessink','natsink'];
   return LanManagerFollower;
 }
 
