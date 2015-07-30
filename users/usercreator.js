@@ -12,7 +12,7 @@ function createUser(execlib,ParentUser){
   function User(prophash){
     ParentUser.call(this,prophash);
   }
-  ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds','haveservices', 'haveengaged_modules']);
+  ParentUser.inherit(User,require('../methoddescriptors/user'),['haveneeds','haveservices', 'haveengaged_modules','havenat']);
   User.prototype.destroy = function(){
     console.log('User',this.get('name'),'down, deleting the record');
     this.__service.subservices.get('services').call('delete',{
