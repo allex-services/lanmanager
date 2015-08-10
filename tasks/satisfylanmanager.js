@@ -77,6 +77,9 @@ function createSatisfier(execlib){
     this.log('called notifyServiceDown',deadservicename);
   };
   Satisfier.prototype.takeNeedsSink = function(needssink){
+    if (!needssink) {
+      return;
+    }
     taskRegistry.run('consumeRemoteServiceNeedingService',{
       sink:needssink,
       myIP:this.myip,
@@ -94,6 +97,7 @@ function createSatisfier(execlib){
     );
   };
   Satisfier.prototype.onSpawned = function (need,challenge,defer,sink) {
+    this.log('spawned!', need, challenge);
     new SpawnedMonitor(this.onSpawnFailed.bind(this,need,challenge,defer), sink);
   };
   Satisfier.prototype.onSpawnFailed = function(need,challenge,defer,reason){

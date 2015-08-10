@@ -37,12 +37,18 @@ function createLMFollower(execlib){
     }
   };
   LanManagerFollower.prototype.takeServicesSubSink = function(sink){
+    if (!sink) {
+      return;
+    }
     taskRegistry.run('forwardData',{
       sink:sink,
       childsink:this.availablelanservicessink
     });
   };
   LanManagerFollower.prototype.takeNatSubSink = function(sink){
+    if (!sink) {
+      return;
+    }
     taskRegistry.run('forwardData',{
       sink:sink,
       childsink:this.natsink
