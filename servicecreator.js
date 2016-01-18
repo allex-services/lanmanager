@@ -8,11 +8,6 @@ function createLMService(execlib,ParentServicePack){
       
   var ParentService = ParentServicePack.Service;
 
-  registry.register('allex_remoteserviceneedingservice');
-  registry.register('allex_serviceneedservice');
-  registry.register('allex_engagedmodulesservice');
-  registry.register('allex_natservice');
-
   function factoryCreator(parentFactory){
     return {
       'service': require('./users/serviceusercreator')(execlib,parentFactory.get('service')),

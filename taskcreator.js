@@ -12,6 +12,9 @@ function createBehaviorMap(execlib){
   },{
     name: 'followLanManager',
     klass: require('./tasks/followlanmanager')(execlib)
+  },{
+    name: 'startLanManager',
+    klass: require('./tasks/startlanmanager')(execlib)
   }];
 }
 
