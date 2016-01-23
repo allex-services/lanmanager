@@ -2,6 +2,7 @@ function createLMService(execlib,ParentServicePack){
   'use strict';
   var ParentService = ParentServicePack.Service,
       lib = execlib.lib,
+      qlib = lib.qlib,
       execSuite = execlib.execSuite,
       registry = execSuite.registry,
       taskRegistry = execSuite.taskRegistry;
@@ -36,6 +37,7 @@ function createLMService(execlib,ParentServicePack){
     this.startSubServiceStatically('allex_natservice','nat',{}).done(
       this.onNatSink.bind(this, prophash.nat||[])
     );
+    this.announceReady();
   }
   ParentService.inherit(LMService,factoryCreator);
   LMService.prototype.__cleanUp = function(){
@@ -48,6 +50,12 @@ function createLMService(execlib,ParentServicePack){
     this.originalNeeds = null;
     ParentService.prototype.__cleanUp.call(this);
   };
+  LMService.prototype.isInitiallyReady = function () {
+    return false;
+  };
+  LMService.prototype.announceReady = execSuite.dependentServiceMethod(['needs', 'services', 'engaged_modules', 'nat'], [], function (needssink, servicessink, engaged_modulessink, natsink, defer){
+    this.readyToAcceptUsersDefer.resolve(true);
+  });
   LMService.prototype.introduceUser = function(userhash){
     if(userhash.role === 'user'){
       userhash.name = userhash.ip;
@@ -65,11 +73,36 @@ function createLMService(execlib,ParentServicePack){
     }
   };
   LMService.prototype.engageNeed = function(needsink,need){
+    if (!need || 'undefined' === typeof need.instancename) {
+      return;
+    }
     this.originalNeeds.replace(need.instancename,need);
     need.strategies = need.strategies || {};
     need.strategies.ip = this.ipstrategies;
     needsink.call('spawn',need);
   };
+  LMService.prototype.addNeed = execSuite.dependentServiceMethod(['needs'], [], function (needssink, need, defer){
+    if (!need || 'undefined' === typeof need.instancename) {
+      defer.reject(new lib.Error('NEED_NOT_DEFINED'));
+    }
+    this.originalNeeds.replace(need.instancename,need);
+    need.strategies = need.strategies || {};
+    need.strategies.ip = this.ipstrategies;
+    //qlib.promise2defer(needssink.call('spawn',need), defer);
+    needssink.call('spawn', need).then(
+      defer.resolve.bind(defer, true),
+      defer.reject.bind(defer)
+    );
+  });
+  LMService.prototype.removeNeed = execSuite.dependentServiceMethod(['needs'], [], function (needsink, instancename, defer) {
+    console.log('removing', instancename, 'from originalNeeds');
+    this.originalNeeds.remove(instancename);
+    if (this.needsTable.some(function(item) {
+      return item.instancename===instancename;
+    })) {
+      needsink.kill(instancename);
+    }
+  });
   LMService.prototype.onNeedDown = function(needhash){
     console.log('need down',needhash);
     this.subservices.get('services').call('create',needhash);
@@ -94,11 +127,13 @@ function createLMService(execlib,ParentServicePack){
     need.tcpport = null;
     need.httpport = null;
     need.wsport = null;
-    lib.traverse(originalneed,function(onv,onn){
-      need[onn] = onv;
-    });
-    console.log('=> new need',need);
-    this.subservices.get('needs').call('spawn',need);
+    if (originalneed) {
+      lib.traverse(originalneed,function(onv,onn){
+        need[onn] = onv;
+      });
+      console.log('=> new need',need);
+      this.subservices.get('needs').call('spawn',need);
+    }
   };
   LMService.prototype.onEngagedModulesSink = function(emsink){
     ['allexcore','allex_dataservice'].forEach(function(emn){

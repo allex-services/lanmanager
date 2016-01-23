@@ -5,6 +5,10 @@ function createServiceUser(execlib,ParentUser){
     ParentUser = execlib.execSuite.ServicePack.Service.prototype.userFactory.get('user');
   }
 
+  var lib = execlib.lib,
+    q = lib.q,
+    qlib = lib.qlib;
+
   function ServiceUser(prophash){
     ParentUser.call(this,prophash);
   }

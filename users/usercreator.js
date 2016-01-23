@@ -2,6 +2,7 @@ function createUser(execlib,ParentUser){
   'use strict';
   var lib = execlib.lib,
       q = lib.q,
+      qlib = lib.qlib,
       execSuite = execlib.execSuite,
       taskRegistry = execSuite.taskRegistry;
 
@@ -51,6 +52,12 @@ function createUser(execlib,ParentUser){
       defer.resolve.bind(defer,modulename),
       defer.reject.bind(defer)
     );
+  };
+  User.prototype.addNeed = function (needobj, defer) {
+    qlib.promise2defer(this.__service.addNeed(needobj), defer);
+  };
+  User.prototype.removeNeed = function (instancename, defer) {
+    qlib.promise2defer(this.__service.removeNeed(instancename), defer);
   };
 
   return User;

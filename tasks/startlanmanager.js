@@ -40,7 +40,6 @@ function createStartLanManager(execlib) {
     Task.prototype.destroy.call(this);
   };
   StartLanManager.prototype.go = function () {
-    console.log('StartLanManager go', this);
     var conf = this.config;
     function ipstrategies(){
       var _subnets = [{
