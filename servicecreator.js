@@ -100,7 +100,7 @@ function createLMService(execlib,ParentServicePack){
     if (this.needsTable.some(function(item) {
       return item.instancename===instancename;
     })) {
-      needsink.kill(instancename);
+      needsink.call('kill', instancename);
     }
   });
   LMService.prototype.onNeedDown = function(needhash){
