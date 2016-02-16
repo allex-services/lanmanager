@@ -90,6 +90,9 @@ function createSatisfier(execlib){
     });
   };
   Satisfier.prototype.doSpawn = function(need,challenge,defer){
+    if (!this.log) {
+      return;
+    }
     this.log('doSpawn',need,challenge);
     this.monitor.sink.call('spawn',need).done(
       this.onSpawned.bind(this,need,challenge,defer),
@@ -97,6 +100,9 @@ function createSatisfier(execlib){
     );
   };
   Satisfier.prototype.onSpawned = function (need,challenge,defer,sink) {
+    if (!this.log) {
+      return;
+    }
     this.log('spawned!', need, challenge);
     new SpawnedMonitor(this.onSpawnFailed.bind(this,need,challenge,defer), sink);
   };
