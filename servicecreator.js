@@ -81,9 +81,16 @@ function createLMService(execlib,ParentServicePack){
     need.strategies.ip = this.ipstrategies;
     needsink.call('spawn',need);
   };
+  function instancenamefinder(instancename, instancerecord) {
+    return instancerecord.instancename === instancename;
+  }
   LMService.prototype.addNeed = execSuite.dependentServiceMethod(['needs'], [], function (needssink, need, defer){
     if (!need || 'undefined' === typeof need.instancename) {
       defer.reject(new lib.Error('NEED_NOT_DEFINED'));
+    }
+    //maybe there's a service already running for this need?
+    if (this.servicesTable.some(instancenamefinder.bind(null, need.instancename))) {
+      defer.resolve(true);
     }
     this.originalNeeds.replace(need.instancename,need);
     need.strategies = need.strategies || {};
