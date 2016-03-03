@@ -91,6 +91,7 @@ function createLMService(execlib,ParentServicePack){
     //maybe there's a service already running for this need?
     if (this.servicesTable.some(instancenamefinder.bind(null, need.instancename))) {
       defer.resolve(true);
+      return;
     }
     this.originalNeeds.replace(need.instancename,need);
     need.strategies = need.strategies || {};

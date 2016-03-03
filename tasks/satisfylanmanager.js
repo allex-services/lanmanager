@@ -68,6 +68,7 @@ function createSatisfier(execlib){
     }
   };
   Satisfier.prototype.onServiceDown = function(servicerecord){
+    this.log('service down', servicerecord);
     var deadservicename = servicerecord.instancename;
     this.state.sink.call('notifyServiceDown',deadservicename).done(
       null,
