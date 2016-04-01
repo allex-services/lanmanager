@@ -29,15 +29,11 @@ function createUser(execlib,ParentUser){
   };
   User.prototype.notifyServiceDown = function(deadinstancename,defer){
     console.log(deadinstancename,'is dead');
-    this.__service.subservices.get('services').call('delete',{
+    return qlib.promise2defer(this.__service.subservices.get('services').call('delete',{
       op: 'eq',
       field: 'instancename',
       value: deadinstancename
-    }).done(
-      defer.resolve.bind(defer),
-      defer.reject.bind(defer),
-      defer.notify.bind(defer)
-    );
+    }), defer);
   };
   User.prototype.notifyModuleEngaged = function(modulename,defer){
     if(!this.destroyed){

@@ -10,6 +10,10 @@ function createSatisfier(execlib){
   }
 
   SpawnedMonitor.prototype.destroy = function (onMissingModule, spawned, exception){
+    if (this.spawnedDestroyedListener) {
+      this.spawnedDestroyedListener.destroy();
+    }
+    this.spawnedDestroyedListener = null;
     if(exception && exception.code==='MODULE_NOT_FOUND'){
       if(lib.isFunction(onMissingModule)){
         onMissingModule(exception);
