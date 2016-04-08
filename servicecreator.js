@@ -63,8 +63,9 @@ function createLMService(execlib,ParentServicePack){
     return ParentService.prototype.introduceUser.call(this,userhash);
   };
   LMService.prototype.onNeedsSink = function(needs,sink){
-    taskRegistry.run('materializeData',{
+    taskRegistry.run('materializeQuery',{
       sink:sink,
+      continuous: true,
       data:this.needsTable,
       onRecordDeletion:this.onNeedDown.bind(this)
     });
@@ -116,8 +117,9 @@ function createLMService(execlib,ParentServicePack){
     this.subservices.get('services').call('create',needhash);
   };
   LMService.prototype.onServicesSink = function(sink){
-    taskRegistry.run('materializeData',{
+    taskRegistry.run('materializeQuery',{
       sink:sink,
+      continuous: true,
       data:this.servicesTable,
       onRecordDeletion:this.onServiceDown.bind(this)
     });

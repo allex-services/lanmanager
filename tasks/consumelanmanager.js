@@ -31,8 +31,9 @@ function createLMConsumer(execlib){
     }
   };
   LanManagerConsumer.prototype.takeServicesSubSink = function(sink){
-    taskRegistry.run('materializeData',{
+    taskRegistry.run('materializeQuery',{
       sink:sink,
+      continuous: true,
       data:this.table
     });
   };
