@@ -1,14 +1,11 @@
-function createLMService(execlib,ParentServicePack){
+function createLMService(execlib,ParentService){
   'use strict';
-  var ParentService = ParentServicePack.Service,
-      lib = execlib.lib,
+  var lib = execlib.lib,
       qlib = lib.qlib,
       execSuite = execlib.execSuite,
       registry = execSuite.registry,
       taskRegistry = execSuite.taskRegistry;
       
-  var ParentService = ParentServicePack.Service;
-
   function factoryCreator(parentFactory){
     return {
       'service': require('./users/serviceusercreator')(execlib,parentFactory.get('service')),
@@ -128,6 +125,7 @@ function createLMService(execlib,ParentServicePack){
     natarry.forEach(function(nat){
       sink.call('create',nat);
     });
+    sink = null;
   };
   LMService.prototype.onServiceDown = function(servicehash){
     console.log('service down',servicehash);
@@ -151,6 +149,7 @@ function createLMService(execlib,ParentServicePack){
         modulename:emn
       });
     });
+    emsink = null;
   };
   
   return LMService;

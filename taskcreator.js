@@ -1,7 +1,5 @@
 function createBehaviorMap(execlib){
   'use strict';
-  var execSuite = execlib.execSuite,
-      taskRegistry = execSuite.taskRegistry;
 
   return [{
     name: 'satisfyLanManager',
