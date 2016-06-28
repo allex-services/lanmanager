@@ -76,7 +76,11 @@ function createLMService(execlib,ParentService){
     }
     this.originalNeeds.replace(need.instancename,need);
     need.strategies = need.strategies || {};
-    need.strategies.ip = this.ipstrategies;
+    if (lib.isArray(need.strategies.ip)) {
+      need.strategies.ip = need.strategies.ip.concat(this.ipstrategies);
+    } else {
+      need.strategies.ip = this.ipstrategies;
+    }
     needsink.call('spawn',need);
   };
   function instancenamefinder(instancename, instancerecord) {
