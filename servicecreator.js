@@ -4,7 +4,9 @@ function createLMService(execlib,ParentService){
       qlib = lib.qlib,
       execSuite = execlib.execSuite,
       registry = execSuite.registry,
-      taskRegistry = execSuite.taskRegistry;
+      taskRegistry = execSuite.taskRegistry,
+      storageManipulation = require('./storagemanipulationcreator')(execlib),
+      NeedsWriterJob = storageManipulation.NeedsWriterJob;
       
   function factoryCreator(parentFactory){
     return {
@@ -17,9 +19,36 @@ function createLMService(execlib,ParentService){
     ParentService.call(this,prophash);
     this.ipstrategies = prophash.ipstrategies;
     console.log('ipstrategies',this.ipstrategies);
+    this.locks = new qlib.JobCollection();
     this.originalNeeds = new lib.Map();
     this.needsTable = [];
     this.servicesTable = [];
+    console.log('running in', process.cwd());
+    this.startSubServiceStatically('allex_directoryservice', 'storage',{
+      path: [process.cwd(), '.allexlanmanager'],
+      text: true
+    }).done(
+      this.onStorage.bind(this, prophash)
+    );
+    this.announceReady();
+  }
+  ParentService.inherit(LMService,factoryCreator);
+  LMService.prototype.__cleanUp = function(){
+    if(!this.originalNeeds){
+      return;
+    }
+    this.servicesTable = null;
+    this.needsTable = null;
+    this.originalNeeds.destroy();
+    this.originalNeeds = null;
+    this.locks.destroy();
+    this.locks = null;
+    ParentService.prototype.__cleanUp.call(this);
+  };
+  LMService.prototype.isInitiallyReady = function () {
+    return false;
+  };
+  LMService.prototype.onStorage = function (prophash) {
     this.startSubServiceStatically('allex_remoteserviceneedingservice','needs',{
       modulename: 'allex_serviceneedservice'
     }).done(
@@ -34,21 +63,6 @@ function createLMService(execlib,ParentService){
     this.startSubServiceStatically('allex_natservice','nat',{}).done(
       this.onNatSink.bind(this, prophash.nat||[])
     );
-    this.announceReady();
-  }
-  ParentService.inherit(LMService,factoryCreator);
-  LMService.prototype.__cleanUp = function(){
-    if(!this.originalNeeds){
-      return;
-    }
-    this.servicesTable = null;
-    this.needsTable = null;
-    this.originalNeeds.destroy();
-    this.originalNeeds = null;
-    ParentService.prototype.__cleanUp.call(this);
-  };
-  LMService.prototype.isInitiallyReady = function () {
-    return false;
   };
   LMService.prototype.announceReady = execSuite.dependentServiceMethod(['needs', 'services', 'engaged_modules', 'nat'], [], function (needssink, servicessink, engaged_modulessink, natsink, defer){
     this.readyToAcceptUsersDefer.resolve(true);
@@ -86,32 +100,49 @@ function createLMService(execlib,ParentService){
   function instancenamefinder(instancename, instancerecord) {
     return instancerecord.instancename === instancename;
   }
-  LMService.prototype.addNeed = execSuite.dependentServiceMethod(['needs'], [], function (needssink, need, defer){
+  LMService.prototype.saveOriginalNeeds = execSuite.dependentServiceMethod(['storage'], [], function (storagesink, defer) {
+    qlib.promise2defer( (new NeedsWriterJob(storagesink, this.originalNeeds)).go(), defer);
+  });
+  LMService.prototype.addNeed = function (need) {
     if (!need || 'undefined' === typeof need.instancename) {
-      defer.reject(new lib.Error('NEED_NOT_DEFINED'));
+      return q.reject(new lib.Error('NEED_NOT_DEFINED'));
     }
     //maybe there's a service already running for this need?
     if (this.servicesTable.some(instancenamefinder.bind(null, need.instancename))) {
-      defer.resolve(true);
-      return;
+      return q(true);
     }
     this.originalNeeds.replace(need.instancename,need);
     need.strategies = need.strategies || {};
     need.strategies.ip = this.ipstrategies;
+    return this.locks.run('needs', new qlib.PromiseExecutorJob([
+      this.saveOriginalNeeds.bind(this),
+      this.spawnNeed.bind(this, need)
+    ]));
+  };
+  LMService.prototype.spawnNeed = execSuite.dependentServiceMethod(['needs'], [], function (needssink, need, defer){
     //qlib.promise2defer(needssink.call('spawn',need), defer);
     needssink.call('spawn', need).then(
       defer.resolve.bind(defer, true),
       defer.reject.bind(defer)
     );
   });
-  LMService.prototype.removeNeed = execSuite.dependentServiceMethod(['needs'], [], function (needsink, instancename, defer) {
+  LMService.prototype.removeNeed = function (instancename) {
     console.log('removing', instancename, 'from originalNeeds');
     this.originalNeeds.remove(instancename);
+    return this.locks.run('needs', new qlib.PromiseExecutorJob([
+      this.saveOriginalNeeds.bind(this),
+      this.killNeed.bind(this, instancename)
+    ]));
+  };
+  LMService.prototype.killNeed = execSuite.dependentServiceMethod(['needs'], [], function (needsink, instancename, defer) {
     if (this.needsTable.some(function(item) {
       return item.instancename===instancename;
     })) {
-      needsink.call('kill', instancename);
+      qlib.promise2defer(needsink.call('kill', instancename), defer);
+    } else {
+      defer.resolve(true);
     }
+    instancename = null;
   });
   LMService.prototype.onNeedDown = function(needhash){
     console.log('need down',needhash);
