@@ -42,7 +42,7 @@ function createStorageManipulation (execlib) {
 			modulename: 'allex_jsonparser'
 		}, onfs), this.defer);
 		*/
-		this.sink.call('write', 'needs', {
+		this.sink.call('write', 'needs.runtime', {
 			parsermodulename: 'allex_jsonparser',
 			modulename: 'allex_jsonparser'
 		}, onfs).then(

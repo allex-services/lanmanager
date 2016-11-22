@@ -24,7 +24,7 @@ function createLMService(execlib,ParentService){
     this.needsTable = [];
     this.servicesTable = [];
     console.log('running in', process.cwd());
-    this.startSubServiceStatically('allex_directoryservice', 'storage',{
+    this.startSubServiceStaticallyWithUserSink('allex_directoryservice', 'storage',{
       path: [process.cwd(), '.allexlanmanager'],
       text: true
     }).done(
@@ -49,18 +49,18 @@ function createLMService(execlib,ParentService){
     return false;
   };
   LMService.prototype.onStorage = function (prophash) {
-    this.startSubServiceStatically('allex_remoteserviceneedingservice','needs',{
+    this.startSubServiceStaticallyWithUserSink('allex_remoteserviceneedingservice','needs',{
       modulename: 'allex_serviceneedservice'
     }).done(
-      this.onNeedsSink.bind(this,prophash.needs)
+      this.onNeedsSink.bind(this)
     );
-    this.startSubServiceStatically('allex_availablelanservicesservice','services',{}).done(
+    this.startSubServiceStaticallyWithUserSink('allex_availablelanservicesservice','services',{}).done(
       this.onServicesSink.bind(this)
     );
-    this.startSubServiceStatically('allex_engagedmodulesservice','engaged_modules',{}).done(
+    this.startSubServiceStaticallyWithUserSink('allex_engagedmodulesservice','engaged_modules',{}).done(
       this.onEngagedModulesSink.bind(this)
     );
-    this.startSubServiceStatically('allex_natservice','nat',{}).done(
+    this.startSubServiceStaticallyWithUserSink('allex_natservice','nat',{}).done(
       this.onNatSink.bind(this, prophash.nat||[])
     );
   };
@@ -73,18 +73,28 @@ function createLMService(execlib,ParentService){
     }
     return ParentService.prototype.introduceUser.call(this,userhash);
   };
-  LMService.prototype.onNeedsSink = function(needs,sink){
+  LMService.prototype.onNeedsSink = function(sink){
     taskRegistry.run('materializeQuery',{
       sink:sink,
       continuous: true,
       data:this.needsTable,
       onRecordDeletion:this.onNeedDown.bind(this)
     });
+    this.readNeedsLayers().then(
+      (needs) => {
+        needs.forEach(engageSingleNeed.bind(this));
+      }
+    );
+    /*
     if(lib.isArray(needs)){
       needs.forEach(this.engageNeed.bind(this,sink));
     }
+    */
   };
-  LMService.prototype.engageNeed = function(needsink,need){
+  function engageSingleNeed (needdesc) {
+    return this.engageNeed(needdesc);
+  }
+  LMService.prototype.engageNeed = execSuite.dependentServiceMethod(['needs'], [], function(needsink, need, defer){
     if (!need || 'undefined' === typeof need.instancename) {
       return;
     }
@@ -95,12 +105,12 @@ function createLMService(execlib,ParentService){
     } else {
       need.strategies.ip = this.ipstrategies;
     }
-    needsink.call('spawn',need);
-  };
+    qlib.promise2defer(needsink.call('spawn',need), defer);
+  });
   function instancenamefinder(instancename, instancerecord) {
     return instancerecord.instancename === instancename;
   }
-  LMService.prototype.saveOriginalNeeds = execSuite.dependentServiceMethod(['storage'], [], function (storagesink, defer) {
+  LMService.prototype.saveOriginalNeeds = execSuite.dependentServiceMethod(['storage_usersink'], [], function (storagesink, defer) {
     qlib.promise2defer( (new NeedsWriterJob(storagesink, this.originalNeeds)).go(), defer);
   });
   LMService.prototype.addNeed = function (need) {
@@ -186,6 +196,8 @@ function createLMService(execlib,ParentService){
     });
     emsink = null;
   };
+
+  require('./needsfunctionalitycreator')(execlib, LMService);
   
   return LMService;
 }
