@@ -45,6 +45,21 @@ function extendWithNeedsFunctionality (execlib, LMService) {
     var needs = files[0].value,
       needsovl = files[1].value,
       needsrt = files[2].value;
+    if (needs === null) {
+      console.error('needs could not be JSON.parsed');
+      defer.reject(new lib.Error('NO_NEEDS', 'needs could not be JSON.parsed'));
+      return;
+    }
+    if (needsovl === null) {
+      console.error('needs.overlay could not be JSON.parsed');
+      defer.reject(new lib.Error('NO_NEEDS_OVERLAY', 'needs.overlay could not be JSON.parsed'));
+      return;
+    }
+    if (needsrt === null) {
+      console.error('needs.runtime could not be JSON.parsed');
+      defer.reject(new lib.Error('NO_NEEDS_RUNTIME', 'needs.runtime could not be JSON.parsed'));
+      return;
+    }
     needsovl.reduce(extender, needs);
     needsrt.reduce(adder, needs);
     defer.resolve(needs);
