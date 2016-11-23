@@ -72,14 +72,14 @@ function extendWithNeedsFunctionality (execlib, LMService) {
       dovl.promise,
       drt.promise
     ]).then(onLayersRead.bind(this, defer));
-    fetchJSON(storagesink, 'needs', {
+    fetchJSON(storagesink, 'needs', [{
       modulename: 'allex_timeservice',
       instancename: 'Time',
       propertyhash: {}
-    }, dn);
+    }], dn);
     fetchJSON(storagesink, 'needs.overlay', [], dovl);
     fetchJSON(storagesink, 'needs.runtime', [], drt);
   });
-};
+}
 
 module.exports = extendWithNeedsFunctionality;
