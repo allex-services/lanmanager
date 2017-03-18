@@ -4,7 +4,9 @@ function extendWithNeedsFunctionality (execlib, LMService) {
     q = lib.q,
     qlib = lib.qlib,
     execSuite = execlib.execSuite,
-    taskRegistry = execSuite.taskRegistry;
+    taskRegistry = execSuite.taskRegistry,
+    storageManipulation = require('./storagemanipulationcreator')(execlib),
+    NeedsWriterJob = storageManipulation.NeedsWriterJob;
 
   function fetchJSON (sink, fname, deflt, defer) {
     taskRegistry.run('fetchOrCreateWithData', {
@@ -65,7 +67,7 @@ function extendWithNeedsFunctionality (execlib, LMService) {
     defer.resolve(needs);
   }
 
-  LMService.prototype.readNeedsLayers = execSuite.dependentServiceMethod(['storage_usersink'], [], function (storagesink, defer) {
+  LMService.prototype.readNeedsLayers = execSuite.dependentServiceMethod(['storage_usersink', 'rtstorage_usersink'], [], function (storagesink, rtstoragesink, defer) {
     var dn = q.defer(), dovl = q.defer(), drt = q.defer();
     q.allSettled([
       dn.promise,
@@ -77,8 +79,12 @@ function extendWithNeedsFunctionality (execlib, LMService) {
       instancename: 'Time',
       propertyhash: {}
     }], dn);
-    fetchJSON(storagesink, 'needs.overlay', [], dovl);
-    fetchJSON(storagesink, 'needs.runtime', [], drt);
+    fetchJSON(rtstoragesink, 'needs.overlay', [], dovl);
+    fetchJSON(rtstoragesink, 'needs.runtime', [], drt);
+  });
+
+  LMService.prototype.saveOriginalNeeds = execSuite.dependentServiceMethod(['rtstorage_usersink'], [], function (storagesink, defer) {
+    qlib.promise2defer( (new NeedsWriterJob(storagesink, this.originalNeeds)).go(), defer);
   });
 }
 

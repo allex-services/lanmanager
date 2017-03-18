@@ -16,7 +16,8 @@ function createStartLanManager(execlib) {
       "eport": 80
     }],
     boot: {
-      portcorrection: 5
+      portcorrection: 5,
+      runtimedirectory: "/whatever"
     },
     subnets: [
       '192.168.1.0/8'
@@ -27,7 +28,34 @@ function createStartLanManager(execlib) {
   var lib = execlib.lib,
     q = lib.q,
     execSuite = execlib.execSuite,
-    Task = execSuite.Task;
+    Task = execSuite.Task,
+    localhostsubnet = [{
+      ip: '127.0.0.1/32',
+      role: 'user'
+    }];
+
+  function subnetpusher (res, subnet) {
+    res.push({ip:subnet, role: 'user'});
+    return res;
+  }
+  function ipstrategies (subnets) {
+    if (!lib.isArray(subnets)) {
+      return {ip: []};
+    }
+    return {
+      ip: subnets.reduce(subnetpusher, localhostsubnet.slice())
+    };
+  }
+
+  function portBuilder(conf, port) {
+    var ret = lib.extend({}, port);
+    if (conf.boot && !isNaN(parseInt(conf.boot.portcorrection))) {
+      console.log('correcting', ret, 'by', conf.boot.portcorrection);
+      ret.port += conf.boot.portcorrection;
+    }
+    ret.strategies = ipstrategies(conf.subnets);
+    return ret;
+  }
 
   function StartLanManager(prophash){
     Task.call(this, prophash);
@@ -41,39 +69,21 @@ function createStartLanManager(execlib) {
   };
   StartLanManager.prototype.go = function () {
     var conf = this.config;
-    function ipstrategies(){
-      var _subnets = [{
-        ip: '127.0.0.1/32',
-        role: 'user'
-      }];
-      conf.subnets.forEach(function(subnet){
-        _subnets.push({ip:subnet,role:'user'});
-      });
-      return {
-        ip: _subnets
-      };
-    }
-    console.log('starting with conf',conf);
-    execlib.execSuite.lanManagerPorts.forEach(function(port){
-      if (conf.boot && !isNaN(parseInt(conf.boot.portcorrection))) {
-        console.log('correcting', port, 'by', conf.boot.portcorrection);
-        port.port += conf.boot.portcorrection;
-      }
-      port.strategies = ipstrategies();
-    });
-    console.log('ports to open',require('util').inspect(execlib.execSuite.lanManagerPorts,{depth:null}));
+    console.log('starting with conf',require('util').inspect(conf, {depth:7}));
     execlib.execSuite.start({
       service:{
         instancename: 'LanManager',
         modulename: 'allex_lanmanagerservice',
         propertyhash: {
+          runtimedirectory: conf.boot.runtimedirectory,
           needs: conf.needs,
           nat: conf.nat,
-          ipstrategies: (ipstrategies()).ip
+          ipstrategies: (ipstrategies(conf.subnets)).ip
         }
       },
-      ports: execlib.execSuite.lanManagerPorts
+      ports: execlib.execSuite.lanManagerPorts.map(portBuilder.bind(null, conf))
     }).done(this.cb);
+    conf = null;
   };
 
   StartLanManager.prototype.compulsoryConstructionProperties = ['config', 'cb'];
