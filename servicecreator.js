@@ -192,7 +192,8 @@ function createLMService(execlib,ParentService){
     instancename = null;
   });
   LMService.prototype.onNeedDown = function(needhash){
-    console.log('need down',require('util').inspect(needhash, {depth:7}));
+    //console.log('need down',require('util').inspect(needhash, {depth:7}));
+    console.info('need', needhash.instancename+' ('+needhash.modulename+') with config\n',needhash.propertyhash,'\n  satisfied by',needhash.ipaddress+':'+needhash.wsport, 'on pid', needhash.pid);
     this.subservices.get('services').call('create',needhash);
   };
   LMService.prototype.onServicesSink = function(sink){
@@ -210,9 +211,9 @@ function createLMService(execlib,ParentService){
     sink = null;
   };
   LMService.prototype.onServiceDown = function(servicehash){
-    console.log('service down',servicehash);
-    var need = servicehash,
+    var infostr, need = servicehash,
         originalneed = this.originalNeeds.get(servicehash.instancename);
+    infostr = `Service ${servicehash.instancename} is down`;
     need.ipaddress = null;
     need.tcpport = null;
     need.httpport = null;
@@ -221,10 +222,12 @@ function createLMService(execlib,ParentService){
       lib.traverse(originalneed,function(onv,onn){
         need[onn] = onv;
       });
-      console.log('=> new need',require('util').inspect(need, {depth:7}));
+      //console.log('=> new need',require('util').inspect(need, {depth:7}));
+      infostr+=', will spawn a new need';
       this.subservices.get('needs').call('spawn',need);
     }
     need = null;
+    console.info(infostr);
   };
   LMService.prototype.onEngagedModulesSink = function(emsink){
     ['allexcore','allex_dataservice'].forEach(function(emn){
