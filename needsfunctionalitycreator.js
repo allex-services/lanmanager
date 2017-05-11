@@ -1,3 +1,4 @@
+var arrayoperationscreator = require('allex_arrayoperationslowlevellib');
 function extendWithNeedsFunctionality (execlib, LMService) {
   'use strict';
   var lib = execlib.lib,
@@ -6,7 +7,8 @@ function extendWithNeedsFunctionality (execlib, LMService) {
     execSuite = execlib.execSuite,
     taskRegistry = execSuite.taskRegistry,
     storageManipulation = require('./storagemanipulationcreator')(execlib),
-    NeedsWriterJob = storageManipulation.NeedsWriterJob;
+    NeedsWriterJob = storageManipulation.NeedsWriterJob,
+    arrayOperations = arrayoperationscreator(lib.extend, lib.readPropertyFromDotDelimitedString, lib.isFunction, lib.Map, lib.AllexJSONizingError);
 
   function fetchJSON (sink, fname, deflt, defer) {
     taskRegistry.run('fetchOrCreateWithData', {
@@ -24,7 +26,7 @@ function extendWithNeedsFunctionality (execlib, LMService) {
     if (!needinstancename) {
       return res;
     }
-    toextend = lib.arryOperations.findElementWithProperty(res, 'instancename', need.instancename);
+    toextend = arrayOperations.findElementWithProperty(res, 'instancename', need.instancename);
     if (!toextend) {
       if (doadd) {
         res.push(need);
