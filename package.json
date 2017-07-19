@@ -1,6 +1,6 @@
 {
   "name": "allex_lanmanagerservice",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "LanManagerService",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@gitlab.hers.rs:allex_services/lanmanager.git"
+    "url": "git@github.com:allex-services/lanmanager.git"
   },
   "dependencies": {
     "allex_arrayoperationslowlevellib": "1.x"
