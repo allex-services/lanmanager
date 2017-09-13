@@ -1,6 +1,6 @@
 {
   "name": "allex_lanmanagerservice",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "LanManagerService",
   "main": "index.js",
   "scripts": {

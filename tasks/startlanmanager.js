@@ -78,7 +78,8 @@ function createStartLanManager(execlib) {
           runtimedirectory: conf.boot.runtimedirectory,
           needs: conf.needs,
           nat: conf.nat,
-          ipstrategies: (ipstrategies(conf.subnets)).ip
+          ipstrategies: (ipstrategies(conf.subnets)).ip,
+          httpmonitorport: conf.boot.httpmonitorport
         }
       },
       ports: execlib.execSuite.lanManagerPorts.map(portBuilder.bind(null, conf))

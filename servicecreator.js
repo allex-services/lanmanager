@@ -50,7 +50,7 @@ function createLMService(execlib,ParentService){
       path: [process.cwd(), '.allexlanmanager'],
       text: true
     }).done(
-      this.onStorage.bind(this)
+      this.onStorage.bind(this, prophash.httpmonitorport)
     );
     this.announceReady();
   }
@@ -75,7 +75,16 @@ function createLMService(execlib,ParentService){
   };
   LMService.prototype.getRunTimeStorageSinkName = function () {
   };
-  LMService.prototype.onStorage = function () {
+  LMService.prototype.onStorage = function (httpmonitorport) {
+    if (lib.isNumber(httpmonitorport) && httpmonitorport) {
+      this.startSubServiceStaticallyWithUserSink('allex_lanmanagerhttpmonitorservice', 'httpmonitor', {
+        lanmanager: this,
+        port: httpmonitorport
+      }).done(
+        this.onStorage.bind(this)
+      );
+      return;
+    }
     if (this.runTimeDir) {
       this.startSubServiceStaticallyWithUserSink('allex_directoryservice', 'rtstorage', {
         path: [this.runTimeDir, '.allexlanmanager'],
