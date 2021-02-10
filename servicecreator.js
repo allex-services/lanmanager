@@ -1,6 +1,7 @@
 function createLMService(execlib,ParentService){
   'use strict';
   var lib = execlib.lib,
+      q = lib.q,
       qlib = lib.qlib,
       execSuite = execlib.execSuite,
       registry = execSuite.registry,
