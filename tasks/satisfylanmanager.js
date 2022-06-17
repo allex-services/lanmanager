@@ -1,29 +1,92 @@
 function createSatisfier(execlib){
   'use strict';
   var lib = execlib.lib,
+      q = lib.q,
+      qlib = lib.qlib,
       execSuite = execlib.execSuite,
       taskRegistry = execSuite.taskRegistry,
       DestroyableTask = execSuite.DestroyableTask;
 
-  function SpawnedMonitor (onMissingModule, spawned) {
-    this.spawnedDestroyedListener = spawned.destroyed.attach(this.destroy.bind(this, onMissingModule, spawned));
+  function SpawnerJobCore (satisfier, need) {
+    this.satisfier = satisfier;
+    this.need = need;
+    this.serviceDestroyedListener = null;
+    this.possibleDeathDefer = null;
   }
-
-  SpawnedMonitor.prototype.destroy = function (onMissingModule, spawned, exception){
-    if (this.spawnedDestroyedListener) {
-      this.spawnedDestroyedListener.destroy();
+  SpawnerJobCore.prototype.destroy = function () {
+    if (this.possibleDeathDefer) {
+      this.possibleDeathDefer.reject(new lib.Error('SPAWNER_DYING'));
     }
-    this.spawnedDestroyedListener = null;
-    if(exception && exception.code==='MODULE_NOT_FOUND'){
-      if(lib.isFunction(onMissingModule)){
-        onMissingModule(exception);
-      }
+    this.possibleDeathDefer = null;
+    this.purgeServiceDestroyedListener();
+    this.serviceDestroyedListener = null; //and again
+    this.need = null;
+    this.satisfier = null;
+  };
+  SpawnerJobCore.prototype.shouldContinue = function () {
+    if (!this.satisfier) {
+      return new lib.Error('NO_LANMANAGER_SATISFIER');
+    }
+    if (!this.satisfier.monitor) {
+      return new lib.Error('NO_LANMANAGER_SATISFIER_MONITOR');
+    }
+    if (!this.satisfier.monitor.sink) {
+      return new lib.Error('NO_LANMANAGER_SATISFIER_MONITOR_SPAWNING_SINK');
+    }
+    if (!this.satisfier.monitor.sink.destroyed) {
+      return new lib.Error('LANMANAGER_SATISFIER_MONITOR_SPAWNING_SINK_DESTROYED');
+    }
+    if (!this.need) {
+      return new lib.Error('NO_NEED_TO_SPAWN_SERVICE');
     }
   };
+  SpawnerJobCore.prototype.trySpawn = function () {
+    //console.log('trying spawn', this.need);
+    return this.satisfier.monitor.sink.call('spawn', this.need).then(
+      this.onSpawned.bind(this),
+      this.onSpawnFailed.bind(this)
+    );
+  };
+  SpawnerJobCore.prototype.onSpawned = function (sink) {
+    var ret;
+    this.purgeServiceDestroyedListener();
+    if (!(sink && sink.destroyed)) {
+      return this.trySpawn();
+    }
+    this.serviceDestroyedListener = sink.destroyed.attach(this.onSpawnFailed.bind(this));
+    this.possibleDeathDefer = q.defer();
+    ret = this.possibleDeathDefer.promise;
+    lib.runNext(this.possibleDeathDefer.resolve.bind(this.possibleDeathDefer, sink), 1000);
+    sink = null;
+    return ret;
+  };
+  SpawnerJobCore.prototype.onServiceDied = function () {
+    //console.log('service died', this.need);
+    if (this.possibleDeathDefer) {
+      this.possibleDeathDefer.reject(new lib.Error('SPAWNED_SERVICE_DIED_PREMATURELY'));
+    }
+    this.possibleDeathDefer = null;
+  };
+  SpawnerJobCore.prototype.onSpawnFailed = function (reason) {
+    console.log('error in spawning', this.need, reason);
+    throw reason;
+    return this.trySpawn();
+  };
+  SpawnerJobCore.prototype.purgeServiceDestroyedListener = function () {
+    if (this.serviceDestroyedListener) {
+      this.serviceDestroyedListener.destroy();
+    }
+    this.serviceDestroyedListener = null;
+  };
+
+  SpawnerJobCore.prototype.steps = [
+    'trySpawn'
+  ];
 
   function Satisfier(prophash){
     DestroyableTask.call(this,prophash,'lanmanagerstate');
     this.state = prophash.lanmanagerstate;
+    this.needsCollection = null;
     this.myip = null;
     this.monitor = prophash.subservicemonitor;
     this.onMissingModule = prophash.onMissingModule;
@@ -47,6 +110,7 @@ function createSatisfier(execlib){
     this.onMissingModule = null;
     this.monitor = null;
     this.myip = null;
+    this.needsCollection = null;
     this.state = null;
     DestroyableTask.prototype.__cleanUp.call(this);
   };
@@ -82,8 +146,14 @@ function createSatisfier(execlib){
     this.log('called notifyServiceDown',deadservicename);
   };
   Satisfier.prototype.takeNeedsSink = function(needssink){
+    var stateobj;
     if (!needssink) {
       return;
+    }
+    if (!this.needsCollection) {
+      stateobj = {state: null};
+      taskRegistry.run('createNeedsCollection', {stateObject: stateobj});
+      this.needsCollection = stateobj.state;
     }
     taskRegistry.run('consumeRemoteServiceNeedingService',{
       sink:needssink,
@@ -91,6 +161,7 @@ function createSatisfier(execlib){
       servicesTable:this.monitor.services,
       newServiceEvent:this.monitor.newServiceEvent,
       onMissingModule:this.onMissingModule,
+      needsCollection:this.needsCollection,
       spawner:this.doSpawn.bind(this)
     });
   };
@@ -99,28 +170,12 @@ function createSatisfier(execlib){
       return;
     }
     this.log('doSpawn',need,challenge);
-    this.monitor.sink.call('spawn',need).done(
-      this.onSpawned.bind(this,need,challenge,defer),
-      this.onSpawnFailed.bind(this,need,challenge,defer)
-    );
+    (qlib.newSteppedJobOnSteppedInstance(
+      new SpawnerJobCore(this, need),
+      defer
+    ).go());
   };
-  Satisfier.prototype.onSpawned = function (need,challenge,defer,sink) {
-    if (!this.log) {
-      return;
-    }
-    this.log('spawned!', need, challenge);
-    new SpawnedMonitor(this.onSpawnFailed.bind(this,need,challenge,defer), sink);
-  };
-  Satisfier.prototype.onSpawnFailed = function(need,challenge,defer,reason){
-    if(!this.destroyed){
-      return;
-    }
-    if(reason.code === 'MODULE_NOT_FOUND'){
-      this.onMissingModule(reason,this.doSpawn.bind(this,need,challenge,defer));
-    }else{
-      defer.resolve(null);
-    }
-  };
+
   Satisfier.prototype.compulsoryConstructionProperties = ['lanmanagerstate','subservicemonitor'];
   return Satisfier;
 }
