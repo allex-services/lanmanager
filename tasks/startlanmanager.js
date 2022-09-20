@@ -82,6 +82,7 @@ function createStartLanManager(execlib) {
           httpmonitorport: conf.boot.httpmonitorport
         }
       },
+      gate: conf.boot.gate,
       ports: execlib.execSuite.lanManagerPorts.map(portBuilder.bind(null, conf))
     }).done(this.cb);
     conf = null;
